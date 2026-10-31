@@ -96,7 +96,7 @@ h3 { margin:14px 0 6px; font-size:14px; opacity:.75; }
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.min.js"></script>
 <script>
 window.onerror = function (m, s, l) { var e = document.getElementById("status"); if (e) e.textContent = "JS ERROR: " + m + " line " + l; };
-var B = window.Android || null;
+window.__out = []; var B = window.Android || { send: function (o) { window.__out.push(o); if (window.__out.length > 300) window.__out.shift(); }, save: function (n, t) { window.__out.push({ __native: 'save', name: n, text: t }); }, saveB64: function (n, b) { window.__out.push({ __native: 'saveB64', name: n, b64: b }); }, notify: function (t, b) { window.__out.push({ __native: 'notify', title: t, body: b }); }, version: function () { return 'native'; }, checkUpdate: function () { window.__out.push({ __native: 'update' }); } };
 var ws = { readyState: 1, send: function (o) { if (B && B.send) B.send(o); } };
 var last = null;
 

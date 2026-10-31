@@ -117,11 +117,42 @@ class MainActivity : Activity() {
     web = w
     setContentView(w)
     RelayService.webView = w
+    h.post(drain)
     if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1)
   }
 
   override fun onBackPressed() {
     val w = web
     if (w != null && w.canGoBack()) w.goBack() else super.onBackPressed()
+  }
+
+  private val h = android.os.Handler(android.os.Looper.getMainLooper())
+
+  private val drain = object : Runnable {
+    override fun run() {
+      val w = web
+      if (w != null) {
+        try {
+          w.evaluateJavascript("(window.__out&&window.__out.length)?window.__out.shift():''") { r ->
+            val s = try { (org.json.JSONTokener(r).nextValue() as? String) } catch (e: Exception) { null }
+            if (!s.isNullOrBlank()) dispatch(s)
+          }
+        } catch (e: Exception) { }
+      }
+      h.postDelayed(this, 120)
+    }
+  }
+
+  private fun dispatch(s: String) {
+    try {
+      val o = JSONObject(s)
+      when (o.optString("__native")) {
+        "save" -> write(o.getString("name"), o.getString("text").toByteArray(Charsets.UTF_8), "application/json")
+        "saveB64" -> write(o.getString("name"), Base64.decode(o.getString("b64"), Base64.DEFAULT), "image/jpeg")
+        "notify" -> post(o.optString("title"), o.optString("body"))
+        "update" -> Thread { doUpdate() }.start()
+        else -> RelayService.instance?.send(s)
+      }
+    } catch (e: Exception) { }
   }
 }
