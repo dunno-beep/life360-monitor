@@ -447,7 +447,7 @@ persist(); renderAlerts(); renderLog(); renderClips();
 
 window.__upd = function (s) { setStatus(s); };
 document.getElementById("update").onclick = function () { if (!B || !B.checkUpdate) { setStatus("no updater"); return; } setStatus("checking..."); B.checkUpdate(); };
-if (B && B.version) { setStatus("build " + B.version().slice(0, 7)); }
+if (B && B.version) { setStatus("build " + B.version().slice(0, 7)); } else { setStatus("NO BRIDGE"); }
 renderDevs(); renderAlerts(); renderLog(); renderClips(); renderPlaces();
 setTimeout(function () { map.invalidateSize(); }, 200);
 </script>

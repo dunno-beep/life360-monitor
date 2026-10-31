@@ -105,6 +105,13 @@ class MainActivity : Activity() {
     w.settings.domStorageEnabled = true
     w.settings.mediaPlaybackRequiresUserGesture = false
     w.webViewClient = WebViewClient()
+    w.webChromeClient = object : android.webkit.WebChromeClient() {
+      override fun onConsoleMessage(m: android.webkit.ConsoleMessage): Boolean {
+        w.post { w.evaluateJavascript("window.__upd && window.__upd(" + org.json.JSONObject.quote("console: " + m.message()) + ")", null) }
+        return true
+      }
+    }
+    android.webkit.WebView.setWebContentsDebuggingEnabled(true)
     w.addJavascriptInterface(Bridge(), "Android")
     w.loadUrl("file:///android_asset/index.html")
     web = w
