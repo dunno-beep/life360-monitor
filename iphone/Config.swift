@@ -9,4 +9,6 @@ enum Config {
     static let upTopic = "l360/\(token)/up"
     static let downTopic = "l360/\(token)/down"
     static let binTopic = "l360/\(token)/bin"
+    static let relayHost = brokerHost
+    static let relayPort = brokerPort
 }
