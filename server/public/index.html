@@ -309,6 +309,7 @@ document.getElementById('photo').src = 'data:image/jpeg;base64,' + s;
 
 function handle(m) {
 if (m.dev) addDev(m.dev);
+if (m.type === 'pcm') { if (m.b64) playPcm(new Int16Array(b64(m.b64).buffer)); return; }
 if (m.type === 'photo') { setPhoto(m.b64); return; }
 if (m.type === 'snapshot') {
 setPhoto(m.photo);
@@ -367,6 +368,7 @@ if (typeof m === 'string') { try { m = JSON.parse(m); } catch (e) { return; } }
 if (!m || typeof m !== 'object') return;
 if (m.__bin) { onmessage({ data: b64(m.__bin).buffer }); return; }
 if (m.__hello) { if (m.dev) addDev(m.dev); if (m.devs) m.devs.forEach(addDev); return; }
+if (m.type === 'pcm') { if (m.b64) playPcm(new Int16Array(b64(m.b64).buffer)); return; }
 if (m.__status) { setStatus(m.state || m.status || ''); return; }
 handle(m);
 }

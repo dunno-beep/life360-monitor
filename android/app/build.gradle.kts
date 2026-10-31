@@ -14,7 +14,7 @@ android {
         versionCode = 1
         versionName = "1.0"
         buildConfigField("String", "RELAY", "\"relay.tail6fc991.ts.net:8080\"")
-        buildConfigField("String", "TOKEN", "\"my-long-secret\"")
+        buildConfigField("String", "TOKEN", "\"kR7tQ2mXpL9vN4sB8wZcJ6yH3fD1gA5eU0iOaT\"")
     }
 
     buildFeatures { buildConfig = true }

