@@ -37,6 +37,7 @@ final class Relay {
             if let u = URL(string: UIApplication.openSettingsURLString) {
                 DispatchQueue.main.async { UIApplication.shared.open(u) }
             }
+        case "state": Relay.shared.sendJSON(["type": "settings", "values": Settings.shared.snapshot as [String: Any]], log: false)
         default: break
         }
         if m["type"] as? String == "settings" { Settings.shared.applyRemote(m) }

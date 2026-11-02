@@ -120,6 +120,7 @@ final class Settings {
         if let x = d["micMode"] as? String, let m = MicMode(rawValue: x) {
             store.set(x, forKey: "micMode"); MicGate.shared.apply()
         }
+        Relay.shared.sendJSON(["type": "settings", "values": snapshot as [String: Any]], log: false)
         Geofences.rearm()
     }
 

