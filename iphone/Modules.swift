@@ -27,7 +27,7 @@ final class Modules {
         Calls.shared.boot()
         NotificationCenter.default.addObserver(forName: UIDevice.batteryStateDidChangeNotification,
                                                object: nil, queue: .main) { [weak self] _ in self?.battery() }
-        Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in self?.tick() }
+        Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in self?.tick() }
         if Settings.shared.isOn(.motion) { startMotion() }
         if Settings.shared.isOn(.batteryState) { battery() }
     }

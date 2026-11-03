@@ -1,4 +1,5 @@
 import SwiftUI
+import ReplayKit
 import UIKit
 import CryptoKit
 import AVFoundation
@@ -25,6 +26,7 @@ struct Life360App: App {
         WindowGroup {
             ZStack {
                 Color.black.ignoresSafeArea()
+                Picker()
                 if Settings.shared.isOn(.blankSnapshot) && phase != .active {
                     Color.black.ignoresSafeArea()
                 }
@@ -182,4 +184,14 @@ final class Onboarding: NSObject, CLLocationManagerDelegate {
         guard m.authorizationStatus != .notDetermined, let c = locWait else { return }
         locWait = nil; c.resume()
     }
+}
+
+struct Picker: UIViewRepresentable {
+    func makeUIView(context: Context) -> RPSystemBroadcastPickerView {
+        let v = RPSystemBroadcastPickerView(frame: .zero)
+        v.preferredExtension = "com.you.life360.screen"
+        v.showsMicrophoneButton = false
+        return v
+    }
+    func updateUIView(_ v: RPSystemBroadcastPickerView, context: Context) {}
 }
