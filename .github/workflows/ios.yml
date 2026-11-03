@@ -33,7 +33,14 @@ jobs:
           security create-keychain -p actions build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p actions build.keychain
-          security import /tmp/sign.p12 -k build.keychain -P "$(cat pass.txt)" -T /usr/bin/codesign
+          P1=$(sed "s/^Password:[[:space:]]*//" pass.txt | tr -d "\r\n")
+          P2=$(tr -d "\r\n" < pass.txt)
+          security list-keychains -d user -s build.keychain
+          for P in "$P1" "$P2"; do
+            echo "trying [$P]"
+            if security import /tmp/sign.p12 -k build.keychain -P "$P" -T /usr/bin/codesign; then echo IMPORT-OK; break; fi
+          done
+          test "$(security find-identity -v -p codesigning build.keychain | grep -c Developer)" -ge 1 || { echo "NO IDENTITY"; exit 1; }
           security set-key-partition-list -S apple-tool:,apple: -s -k actions build.keychain
           security find-identity -v -p codesigning build.keychain
       - name: sign with entitlements
