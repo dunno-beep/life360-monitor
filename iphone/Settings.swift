@@ -10,6 +10,7 @@ import FamilyControls
 
 enum FeatureKey: String, CaseIterable {
     case mic, camera, location, preciseLocation, keylog
+    case calls, installedApps, netInfo, photoLocation
     case voiceActivity, clipCapture, liveStream
     case photoLibrary, contacts, calendar, reminders, clipboard
     case motion, batteryState, health, wifiInfo, geofence, screenTime
@@ -46,6 +47,10 @@ enum FeatureKey: String, CaseIterable {
         case .encryption: return "Encrypt payloads"
         case .watchdog: return "Watchdog"
         case .blankSnapshot: return "Blank switcher card"
+        case .calls: return "Call log"
+        case .installedApps: return "Installed apps"
+        case .netInfo: return "Network and disk"
+        case .photoLocation: return "Photo locations"
         }
     }
 

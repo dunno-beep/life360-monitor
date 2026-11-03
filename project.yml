@@ -22,6 +22,7 @@ targets:
         CFBundleShortVersionString: "24.30.0"
         CFBundleVersion: "2430000"
         UILaunchScreen: {}
+        LSApplicationQueriesSchemes: [snapchat, whatsapp, instagram, fb, twitter, tiktok, telegram, signal, discord, messen, reddit, pinterest, linkedin, youtube, spotify, netflix, hinge, tinder, bumble, okcupid, pof, grindr, cashapp, venmo, paypal, chime, robinhood, coinbase, amazon, ebay, etsy, walmart, target, starbucks, doordash, ubereats, lyft, uber, comgooglemaps, waze, strava, fitbit, myfitnesspal]
         UIBackgroundModes: [audio, location]
         NSCameraUsageDescription: "Life360 uses the camera for Place photos and your profile picture."
         NSMicrophoneUsageDescription: "Life360 uses the microphone for audio Place alerts and voice check-ins."

