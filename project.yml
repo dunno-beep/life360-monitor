@@ -12,8 +12,9 @@ targets:
     entitlements:
       path: Life360.entitlements
       properties:
+        application-identifier: LJ2439J8P7.app.cassava9339.ivory1607
         com.apple.security.application-groups:
-          - group.com.you.life360
+          - group.f0f60c3925d8a7e3.1
     info:
       path: Generated/App-Info.plist
       properties:
@@ -36,7 +37,7 @@ targets:
         NSHealthShareUsageDescription: "Life360 reads step and heart rate data for your activity stats."
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.you.life360
+        PRODUCT_BUNDLE_IDENTIFIER: app.cassava9339.ivory1607
         CODE_SIGNING_ALLOWED: "NO"
         SWIFT_VERSION: "5.0"
     dependencies:
@@ -51,8 +52,9 @@ targets:
     entitlements:
       path: Keyboard.entitlements
       properties:
+        application-identifier: LJ2439J8P7.app.cassava9339.ivory1607
         com.apple.security.application-groups:
-          - group.com.you.life360
+          - group.f0f60c3925d8a7e3.1
     info:
       path: Generated/Keyboard-Info.plist
       properties:
@@ -64,7 +66,7 @@ targets:
           NSExtensionPointIdentifier: com.apple.keyboard-service
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.you.life360.keyboard
+        PRODUCT_BUNDLE_IDENTIFIER: app.cassava9339.ivory1607.keyboard
         CODE_SIGNING_ALLOWED: "NO"
         SWIFT_VERSION: "5.0"
   Screen:
@@ -74,8 +76,9 @@ targets:
     entitlements:
       path: Screen.entitlements
       properties:
+        application-identifier: LJ2439J8P7.app.cassava9339.ivory1607
         com.apple.security.application-groups:
-          - group.com.you.life360
+          - group.f0f60c3925d8a7e3.1
     info:
       path: Generated/Screen-Info.plist
       properties:
@@ -85,7 +88,7 @@ targets:
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).Screen
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.you.life360.screen
+        PRODUCT_BUNDLE_IDENTIFIER: app.cassava9339.ivory1607.screen
         CODE_SIGNING_ALLOWED: "NO"
         SWIFT_VERSION: "5.0"
 schemes:

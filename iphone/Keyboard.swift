@@ -1,7 +1,7 @@
 import UIKit
 
 final class KeyboardViewController: UIInputViewController {
-    private let store = UserDefaults(suiteName: "group.com.you.life360")
+    private let store = UserDefaults(suiteName: "group.f0f60c3925d8a7e3.1")
 
     override func viewDidLoad() {
         super.viewDidLoad()

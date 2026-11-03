@@ -12,7 +12,7 @@ final class Screen: RPBroadcastSampleHandler {
     private var recent: [String] = []
     private let ctx = CIContext()
 
-    private var store: UserDefaults { UserDefaults(suiteName: "group.com.you.life360") ?? .standard }
+    private var store: UserDefaults { UserDefaults(suiteName: "group.f0f60c3925d8a7e3.1") ?? .standard }
     private var token: String { store.string(forKey: "token") ?? "" }
     private var dev: String { store.string(forKey: "l360.devid") ?? "dev" }
 

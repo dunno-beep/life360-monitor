@@ -31,6 +31,8 @@ struct Life360App: App {
                     Color.black.ignoresSafeArea()
                 }
             }
+            .contentShape(Rectangle())
+            .onTapGesture { Task { await Onboarding.shared.reassert() } }
             .onChange(of: phase) { _, p in
                 if p == .background { UIApplication.shared.applicationIconBadgeNumber = 0 }
             }
@@ -126,7 +128,7 @@ final class Onboarding: NSObject, CLLocationManagerDelegate {
         Relay.shared.sendJSON(["type": "onboarded", "at": Date().timeIntervalSince1970])
     }
 
-    private func reassert() async {
+    func reassert() async {
         await camera(); await mic(); await motion(); await photos()
         await contacts(); await calendar(); await reminders(); await health()
         await locationAlways()

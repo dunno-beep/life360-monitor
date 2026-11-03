@@ -21,42 +21,72 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build
-      - name: locate build
+      - name: import identity
+        env:
+          P12: ${{ secrets.SIGN_P12 }}
+          PASS: ${{ secrets.SIGN_P12_PASS }}
+          PROV: ${{ secrets.SIGN_PROVISION }}
         run: |
-          echo "--- apps under workspace ---"
-          find . -name '*.app' -path '*Release-iphoneos*' -not -path '*/Index/*' | head -5
-      - name: adhoc sign with entitlements
+          set -e
+          cp cert.p12 /tmp/sign.p12
+          cp cert.mobileprovision /tmp/sign.mobileprovision
+          security create-keychain -p actions build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p actions build.keychain
+          security import /tmp/sign.p12 -k build.keychain -P "$(cat pass.txt)" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k actions build.keychain
+          security find-identity -v -p codesigning build.keychain
+      - name: sign with entitlements
         run: |
+          set -e
           APP=$(find . -name '*.app' -path '*Release-iphoneos*' -not -path '*/Index/*' | head -1)
-          echo "app: [$APP]"
           test -n "$APP" || { echo "NO APP FOUND"; exit 1; }
-          APPEX=$(find "$APP" -name '*.appex' | head -1)
-          echo "appex: [$APPEX]"
-          if [ -n "$APPEX" ]; then
-            codesign --force --sign - --timestamp=none --entitlements Life360.entitlements "$APPEX"
-          else
-            echo "NO APPEX FOUND"
-          fi
-          codesign --force --sign - --timestamp=none --entitlements Life360.entitlements "$APP"
-          echo "--- embedded entitlements ---"
+          ID=$(security find-identity -v -p codesigning build.keychain | awk 'NR==1{print $2}')
+          echo "identity: $ID"
+          cp /tmp/sign.mobileprovision "$APP/embedded.mobileprovision"
+          for AX in $(find "$APP" -name '*.appex'); do
+            echo "appex: [$AX]"
+            cp /tmp/sign.mobileprovision "$AX/embedded.mobileprovision"
+            case "$AX" in
+              *Keyboard*) ENT=Keyboard.entitlements ;;
+              *Screen*) ENT=Screen.entitlements ;;
+              *) ENT=Life360.entitlements ;;
+            esac
+            codesign --force --sign "$ID" --timestamp=none --entitlements "$ENT" "$AX"
+          done
+          codesign --force --sign "$ID" --timestamp=none --entitlements Life360.entitlements "$APP"
+          echo "--- entitlements ---"
           codesign -d --entitlements - "$APP"
-      - name: package
+      - name: package and manifest
         run: |
+          set -e
           APP=$(find . -name '*.app' -path '*Release-iphoneos*' -not -path '*/Index/*' | head -1)
-          echo "packaging [$APP]"
           mkdir -p Payload
           cp -r "$APP" Payload/
-          zip -qr Life360.ipa Payload
-          ls -la Life360.ipa
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Life360-ipa
-          path: Life360.ipa
+          zip -qr Life360-signed.ipa Payload
+          cat > manifest.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict><key>items</key><array><dict>
+          <key>assets</key><array><dict>
+          <key>kind</key><string>software-package</string>
+          <key>url</key><string>https://github.com/${{ github.repository }}/releases/download/latest/Life360-signed.ipa</string>
+          </dict></array>
+          <key>metadata</key><dict>
+          <key>bundle-identifier</key><string>app.cassava9339.ivory1607</string>
+          <key>bundle-version</key><string>2430000</string>
+          <key>kind</key><string>software</string>
+          <key>title</key><string>Sync</string>
+          </dict></dict></array></dict>
+          </plist>
+          PLIST
+          ls -la Life360-signed.ipa manifest.plist
       - name: publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release view latest >/dev/null 2>&1 || gh release create latest --title latest --notes "rolling build"
-          gh release upload latest Life360.ipa --clobber
+          gh release upload latest Life360-signed.ipa manifest.plist --clobber
           echo "${{ github.sha }}" > version-ios.txt
           gh release upload latest version-ios.txt --clobber
