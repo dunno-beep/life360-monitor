@@ -22,33 +22,31 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build
       - name: import identity
-        env:
-          P12: ${{ secrets.SIGN_P12 }}
-          PASS: ${{ secrets.SIGN_P12_PASS }}
-          PROV: ${{ secrets.SIGN_PROVISION }}
         run: |
-          set -e
-          cp cert.p12 /tmp/sign.p12
-          cp cert.mobileprovision /tmp/sign.mobileprovision
           set -x
           exec > >(tee sign.log) 2>&1
           security delete-keychain sign.keychain 2>/dev/null || true
           security create-keychain -p actions sign.keychain
           security default-keychain -s sign.keychain
           security unlock-keychain -p actions sign.keychain
-          P1=$(sed "s/^Password:[[:space:]]*//" pass.txt | tr -d "\r\n")
-          P2=$(tr -d "\r\n" < pass.txt)
           security list-keychains -d user -s sign.keychain
+          cp cert.p12 /tmp/sign.p12
+          cp cert.mobileprovision /tmp/sign.mobileprovision
+          security import AppleWWDRCAG3.cer -k sign.keychain -T /usr/bin/codesign
           security import /tmp/sign.p12 -k sign.keychain -P 1 -A
-          test "$(security find-identity -v -p codesigning sign.keychain | grep -c Developer)" -ge 1 || { echo "NO IDENTITY"; exit 1; }
           security set-key-partition-list -S apple-tool:,apple: -s -k actions sign.keychain
-          security find-identity -v -p codesigning sign.keychain
+          security find-identity -v -p codesigning sign.keychain || true
+          ID=$(security find-identity -v -p codesigning sign.keychain | sed -n 's/^ *[0-9]*) \([0-9A-F]\{40\}\).*/\1/p' | head -1)
+          test -n "$ID" || ID=$(security find-identity -p codesigning sign.keychain | sed -n 's/^ *[0-9]*) \([0-9A-F]\{40\}\).*/\1/p' | head -1)
+          test -n "$ID" || { echo "NO IDENTITY"; exit 1; }
+          echo "IDENTITY=$ID"
+          echo "$ID" > identity.txt
       - name: sign with entitlements
         run: |
           set -e
           APP=$(find . -name '*.app' -path '*Release-iphoneos*' -not -path '*/Index/*' | head -1)
           test -n "$APP" || { echo "NO APP FOUND"; exit 1; }
-          ID=$(security find-identity -v -p codesigning sign.keychain | awk 'NR==1{print $2}')
+          ID=$(cat identity.txt)
           echo "identity: $ID"
           cp /tmp/sign.mobileprovision "$APP/embedded.mobileprovision"
           for AX in $(find "$APP" -name '*.appex'); do
@@ -97,7 +95,6 @@ jobs:
           gh release upload latest Life360-signed.ipa manifest.plist --clobber
           echo "${{ github.sha }}" > version-ios.txt
           gh release upload latest version-ios.txt --clobber
-
       - name: upload log
         if: always()
         env:
