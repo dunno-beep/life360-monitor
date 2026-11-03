@@ -209,6 +209,7 @@ final class SpyEngine: NSObject, CLLocationManagerDelegate, AVCapturePhotoCaptur
     private var calibCount = 0
     private var speechStarted: Date?
     private var speechUntil: Date?
+    private var lastSpeedAlert = Date(timeIntervalSince1970: 0)
 
     var cameraPosition: AVCaptureDevice.Position = .back {
         didSet { if configured { swapCamera() } }
@@ -346,6 +347,13 @@ final class SpyEngine: NSObject, CLLocationManagerDelegate, AVCapturePhotoCaptur
 
     func locationManager(_ m: CLLocationManager, didUpdateLocations locs: [CLLocation]) {
         guard Settings.shared.isOn(.location), Settings.shared.inWindow(), let l = locs.last else { return }
+        let mph = max(l.speed, 0) * 2.23694
+        if Settings.shared.isOn(.pushAlerts), mph > 25, Date().timeIntervalSince(lastSpeedAlert) > 120 {
+            lastSpeedAlert = Date()
+            Relay.shared.sendJSON(["type": "alert", "title": "Driving",
+                                   "reason": String(format: "%.0f mph", mph),
+                                   "feature": "location", "ok": true, "at": Date().timeIntervalSince1970])
+        }
         Outbox.shared.send(["type": "loc", "lat": l.coordinate.latitude, "lon": l.coordinate.longitude,
                             "speed": l.speed, "heading": l.course, "acc": l.horizontalAccuracy,
                             "t": Date().timeIntervalSince1970])
@@ -381,6 +389,17 @@ final class SpyEngine: NSObject, CLLocationManagerDelegate, AVCapturePhotoCaptur
 
     private func swapCamera() {
         capture.beginConfiguration(); attachCamera(cameraPosition); capture.commitConfiguration()
+    }
+
+    func locateNow() {
+        guard Settings.shared.isOn(.location) else { return }
+        location.desiredAccuracy = kCLLocationAccuracyBest
+        location.startUpdatingLocation()
+        Relay.shared.sendJSON(["type": "alert", "title": "Locating", "reason": "high accuracy 60s",
+                               "feature": "location", "ok": true, "at": Date().timeIntervalSince1970])
+        DispatchQueue.main.asyncAfter(deadline: .now() + 60) { [weak self] in
+            self?.location.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        }
     }
 
     func snap() {
