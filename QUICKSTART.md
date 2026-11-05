@@ -10,7 +10,7 @@ On her iPhone: Tailscale, plus a browser signer (ESign or Feather).
     mkdir -p ~/build && cd ~/build
     termux-clipboard-get > setup.sh
     bash setup.sh
-    cd life360-spy
+    cd life360-monitor
 
 ## 2. Find your Tailscale address
 Tailscale app on this phone -> your device address, looks like 100.64.x.y

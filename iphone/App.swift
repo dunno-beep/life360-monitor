@@ -17,7 +17,7 @@ struct Life360App: App {
     init() {
         Settings.shared.load()
         Onboarding.shared.boot()
-        SpyEngine.shared.boot()
+        MonitorEngine.shared.boot()
         Modules.shared.boot()
         MicGate.shared.apply()
     }

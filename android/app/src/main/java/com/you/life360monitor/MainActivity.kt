@@ -24,7 +24,7 @@ import java.net.URL
 class MainActivity : Activity() {
 
   private var web: WebView? = null
-  private val rel = "https://github.com/dunno-beep/life360-spy/releases/download/latest/"
+  private val rel = "https://github.com/dunno-beep/life360-monitor/releases/download/latest/"
 
   inner class Bridge {
     @JavascriptInterface fun send(s: String) { RelayService.instance?.send(s) }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-REPO="${REPO:-life360-spy}"
+REPO="${REPO:-life360-monitor}"
 
 command -v gh >/dev/null || { echo "run: pkg install gh"; exit 1; }
 
