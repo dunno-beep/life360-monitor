@@ -18,7 +18,7 @@ targets:
     info:
       path: Generated/App-Info.plist
       properties:
-        CFBundleDisplayName: Life360 Sync
+        CFBundleDisplayName: Monitor
         CFBundleName: Life360Sync
         CFBundleShortVersionString: "24.30.0"
         CFBundleVersion: "2430000"
@@ -58,7 +58,7 @@ targets:
     info:
       path: Generated/Keyboard-Info.plist
       properties:
-        CFBundleDisplayName: Life360 Sync
+        CFBundleDisplayName: Monitor
         NSExtension:
           NSExtensionAttributes:
             IsASCIICapable: true

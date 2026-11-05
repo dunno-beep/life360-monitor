@@ -82,7 +82,7 @@ jobs:
           <key>bundle-identifier</key><string>app.cassava9339.ivory1607</string>
           <key>bundle-version</key><string>2430000</string>
           <key>kind</key><string>software</string>
-          <key>title</key><string>Sync</string>
+          <key>title</key><string>Monitor</string>
           </dict></dict></array></dict>
           </plist>
           PLIST
