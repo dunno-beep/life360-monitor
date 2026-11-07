@@ -24,7 +24,7 @@ import java.net.URL
 class MainActivity : Activity() {
 
   private var web: WebView? = null
-  private val rel = "https://github.com/dunno-beep/life360-monitor/releases/download/latest/"
+  private val rel = "https://github.com/dunno-beep/life360-spy/releases/download/latest/"
 
   inner class Bridge {
     @JavascriptInterface fun send(s: String) { RelayService.instance?.send(s) }
@@ -48,8 +48,8 @@ class MainActivity : Activity() {
       if (remote == mine) {
         msg = "up to date " + mine.take(7)
       } else {
-        val bytes = URL(rel + "life360-monitor.apk").openStream().use { it.readBytes() }
-        val uri = write("life360-monitor.apk", bytes, "application/vnd.android.package-archive")
+        val bytes = URL(rel + "life360-spy.apk").openStream().use { it.readBytes() }
+        val uri = write("life360-spy.apk", bytes, "application/vnd.android.package-archive")
         msg = "got " + (bytes.size / 1024) + "k - tap install"
         if (uri != null) {
           val i = Intent(Intent.ACTION_VIEW)
