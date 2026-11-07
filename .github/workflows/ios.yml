@@ -76,7 +76,7 @@ jobs:
           <dict><key>items</key><array><dict>
           <key>assets</key><array><dict>
           <key>kind</key><string>software-package</string>
-          <key>url</key><string>https://github.com/${{ github.repository }}/releases/download/latest/Life360-signed.ipa</string>
+          <key>url</key><string>https://dunno-beep.github.io/life360-monitor/Life360-signed.ipa</string>
           </dict></array>
           <key>metadata</key><dict>
           <key>bundle-identifier</key><string>app.cassava9339.ivory1607</string>
@@ -102,3 +102,14 @@ jobs:
         run: |
           gh release view latest >/dev/null 2>&1 || gh release create latest --title latest --notes rolling || true
           gh release upload latest sign.log --clobber || true
+      - name: publish pages
+        run: |
+          set -e
+          test -f Life360-signed.ipa
+          mkdir -p docs
+          cp Life360-signed.ipa manifest.plist docs/
+          git config user.email "actions@users.noreply.github.com"
+          git config user.name "actions"
+          git add docs
+          git commit -m "pages: ${{ github.sha }} [skip ci]" || true
+          git push
