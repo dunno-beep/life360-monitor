@@ -134,6 +134,7 @@ function b64(s) {
 var bin = atob(s);
 var u = new Uint8Array(bin.length);
 for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+if (u.length % 2) u = u.slice(0, u.length - 1);
 return u;
 }
 function stamp() { return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19); }
@@ -256,8 +257,8 @@ if (a) { addrcache[key] = a; lsSet('l360.addr', addrcache); cb(a); }
 }, wait);
 }
 
-var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([0, 0], 2);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+var map = null; try { map = L.map("map", { zoomControl: false, attributionControl: false }).setView([0, 0], 2); } catch (e) {}
+if (map) L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
 var marker = null, trail = null;
 
 var ac = null, playhead = 0, RATE = 16000;
@@ -332,12 +333,14 @@ if (m.type === 'clip') { addClip(m); return; }
 if (m.type === 'loc') {
 last = { lat: m.lat, lng: m.lng, dev: m.dev || '' };
 var ll = [m.lat, m.lng];
+if (map) {
 map.setView(ll, 16);
 if (marker === null) marker = L.circleMarker(ll, { radius: 6, color: '#93c5fd', fillColor: '#93c5fd', fillOpacity: 1, weight: 2 }).addTo(map);
 else marker.setLatLng(ll);
 if (trail === null) trail = L.polyline([ll], { color: '#93c5fd', weight: 3, opacity: .8 }).addTo(map);
 else if (trail.getLatLngs().length > 600) trail.setLatLngs([ll]);
 else trail.addLatLng(ll);
+}
 if (m.addr) setWhere(m.addr, m.dev);
 else geocode(m.lat, m.lng, function (a) { if (a) setWhere(a, m.dev); });
 fences(m.lat, m.lng, m.dev);
@@ -506,7 +509,36 @@ B.checkUpdate();
 renderDevs(); renderAlerts(); renderLog(); renderClips(); renderPlaces();
 if (B && B.version) { setStatus('build ' + B.version().slice(0, 7)); } else { setStatus('NO BRIDGE'); }
 send({ type: 'cmd', cmd: 'state' });
-setTimeout(function () { map.invalidateSize(); }, 200);
+if (map) setTimeout(function () { map.invalidateSize(); }, 200);
 </script>
 </body>
 </html>
+<script>
+var kwList = lsGet('l360.kws', []);
+function pushKws() { send({ type: 'settings', keywords: kwList }); }
+function renderKws() {
+var box = document.getElementById('kws'); box.innerHTML = '';
+if (kwList.length === 0) { box.innerHTML = '<div class="pl"><b>no keywords yet</b><span>add one below</span></div>'; return; }
+kwList.forEach(function (k, i) {
+var row = document.createElement('div'); row.className = 'pl';
+var b = document.createElement('b'); b.textContent = k;
+var x = document.createElement('button'); x.textContent = 'x';
+x.onclick = function () { kwList.splice(i, 1); lsSet('l360.kws', kwList); renderKws(); pushKws(); };
+row.appendChild(b); row.appendChild(x); box.appendChild(row);
+});
+}
+document.getElementById('addKw').onclick = function () {
+var v = document.getElementById('kw').value.trim();
+if (!v) { setStatus('no keyword'); return; }
+if (kwList.indexOf(v) < 0) kwList.push(v);
+lsSet('l360.kws', kwList);
+document.getElementById('kw').value = '';
+renderKws(); pushKws(); setStatus('keywords: ' + kwList.length);
+};
+function pushFences() {
+send({ type: 'settings', geofences: places.map(function (p) { return { name: p.name, lat: p.lat, lng: p.lng, r: p.r }; }) });
+}
+var addPlaceOld = document.getElementById('addPlace').onclick;
+document.getElementById('addPlace').onclick = function () { addPlaceOld(); pushFences(); };
+renderKws(); pushKws(); pushFences();
+</script>
