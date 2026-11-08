@@ -8,7 +8,7 @@ enum Config {
     static let viewer  = "5402b1fae55b95913634afdd5aa6484bb6c679aced51084f"
     static let control = "a69ed45d8b28fb3dde096eccec49245a5bce43db2a9d7324"
 
-    static let relayHost = "relay.tail6fc991.ts.net"
+    static let relayHost = "100.94.117.23"
     static let relayPort = 8080
 
     static let brokerHost = "broker.emqx.io"
