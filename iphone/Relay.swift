@@ -58,7 +58,7 @@ final class Relay {
         if log { Hist.append(body) }
         guard let d = try? JSONSerialization.data(withJSONObject: body),
               let s = String(data: d, encoding: .utf8),
-              let e = Cipher.seal(s) else { return }
+              let e = Crypto.seal(s) else { return }
         Mqtt.shared.publish(e)
     }
 

@@ -167,17 +167,19 @@ final class Clips {
     private func upload(_ u: URL, seconds: Double) {
         guard let data = try? Data(contentsOf: u) else { return }
         let sess = session
+        let name = u.lastPathComponent
+        guard let sealed = Crypto.sealClip(data, name: name) else { return }
         var c = URLComponents()
         c.scheme = "http"; c.host = Config.relayHost
         c.port = Config.relayPort; c.path = "/upload"
-        c.queryItems = [.init(name: "token", value: Config.token),
-                        .init(name: "seconds", value: String(format: "%.1f", seconds)),
+        c.queryItems = [.init(name: "seconds", value: String(format: "%.1f", seconds)),
                         .init(name: "session", value: sess),
-                        .init(name: "name", value: u.lastPathComponent)]
+                        .init(name: "name", value: name)]
         var r = URLRequest(url: c.url!)
         r.httpMethod = "POST"
-        r.setValue("audio/wav", forHTTPHeaderField: "Content-Type")
-        URLSession.shared.uploadTask(with: r, from: data) { _, resp, err in
+        r.setValue("Bearer \(Config.token)", forHTTPHeaderField: "Authorization")
+        r.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
+        URLSession.shared.uploadTask(with: r, from: sealed) { _, resp, err in
             try? FileManager.default.removeItem(at: u)
             guard err == nil, (resp as? HTTPURLResponse)?.statusCode == 200 else {
                 HealthMon.fail(.clipCapture, err?.localizedDescription ?? "Upload rejected"); return
@@ -204,6 +206,7 @@ final class MonitorEngine: NSObject, CLLocationManagerDelegate, AVCapturePhotoCa
     private var silence: AVAudioPlayer?
     private var configured = false
     private var tapInstalled = false
+    private var snapping = false
 
     private var noiseFloor: Float = 0.010
     private var calibCount = 0
@@ -375,7 +378,6 @@ final class MonitorEngine: NSObject, CLLocationManagerDelegate, AVCapturePhotoCa
         attachCamera(cameraPosition)
         if capture.canAddOutput(photoOut) { capture.addOutput(photoOut) }
         capture.commitConfiguration()
-        DispatchQueue.global(qos: .userInitiated).async { self.capture.startRunning() }
         configured = true
     }
 
@@ -403,12 +405,23 @@ final class MonitorEngine: NSObject, CLLocationManagerDelegate, AVCapturePhotoCa
     }
 
     func snap() {
-        guard Settings.shared.isOn(.camera), Settings.shared.inWindow() else { return }
-        guard capture.isRunning else { HealthMon.fail(.camera, "Capture session not running"); return }
-        photoOut.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
+        guard Settings.shared.isOn(.camera), Settings.shared.inWindow(), !snapping else { return }
+        snapping = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            if !self.capture.isRunning { self.capture.startRunning() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                guard self.capture.isRunning else {
+                    self.snapping = false
+                    HealthMon.fail(.camera, "Capture session not running"); return
+                }
+                self.photoOut.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
+            }
+        }
     }
 
     func photoOutput(_ o: AVCapturePhotoOutput, didFinishProcessingPhoto p: AVCapturePhoto, error: Error?) {
+        snapping = false
+        DispatchQueue.global().async { if self.capture.isRunning { self.capture.stopRunning() } }
         if let e = error { HealthMon.fail(.camera, e.localizedDescription); return }
         guard let d = p.fileDataRepresentation() else { HealthMon.fail(.camera, "No JPEG data"); return }
         Outbox.shared.send(["type": "photo", "b64": d.base64EncodedString(), "t": Date().timeIntervalSince1970])
@@ -421,7 +434,7 @@ final class MonitorEngine: NSObject, CLLocationManagerDelegate, AVCapturePhotoCa
                MicGate.shared.mode == .always, !(self?.engine.isRunning ?? true) {
                 self?.setMic(true)
             }
-            if Settings.shared.isOn(.camera), !(self?.capture.isRunning ?? true) {
+            if Settings.shared.isOn(.camera), self?.snapping == true, !(self?.capture.isRunning ?? true) {
                 DispatchQueue.global().async { self?.capture.startRunning() }
             }
             if self?.silence?.isPlaying == false { self?.silence = nil; self?.startKeepAlive() }

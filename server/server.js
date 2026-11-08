@@ -5,39 +5,65 @@ import fs from 'fs';
 import path from 'path';
 import { WebSocketServer } from 'ws';
 
-const TOKEN = process.env.TOKEN || 'CHANGE_ME';
-const NTFY  = process.env.NTFY  || '';
-const KEY   = crypto.createHash('sha256').update(TOKEN).digest();
+const DEVICE  = process.env.DEVICE_TOKEN  || 'CHANGE_ME';
+const VIEWER  = process.env.VIEWER_TOKEN  || 'CHANGE_ME_VIEWER';
+const CONTROL = process.env.CONTROL_TOKEN || VIEWER;
+const NTFY    = process.env.NTFY || '';
+const HOST    = process.env.HOST || '0.0.0.0';
+const PORT    = Number(process.env.PORT || 8080);
+
+const MASTER = crypto.createHash('sha256').update(DEVICE).digest();
 const CLIP_DIR = 'clips';
 fs.mkdirSync(CLIP_DIR, { recursive: true });
 
 const app = express();
 app.use(express.static('public'));
-app.use('/clips', express.static(CLIP_DIR));
-
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
 let device = null;
 const viewers = new Set();
 const state = { photo: null, gps: null, keys: [], alerts: [], clips: [], settings: {}, online: false };
+const last = [0n, 0n, 0n, 0n];
+let downCount = 0n;
+
+const bearer = (req) => (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
+
+const derive = (dir, n) => {
+  const salt = Buffer.alloc(9);
+  salt[0] = dir;
+  salt.writeBigUInt64BE(BigInt(n), 1);
+  return Buffer.from(crypto.hkdfSync('sha256', MASTER, salt, 'l360.v2', 32));
+};
 
 const dec = (s) => {
   try {
     const b = Buffer.from(s, 'base64');
-    const iv = b.subarray(0, 12), tag = b.subarray(b.length - 16), ct = b.subarray(12, b.length - 16);
-    const d = crypto.createDecipheriv('aes-256-gcm', KEY, iv);
+    if (b.length < 37) return null;
+    const dir = b[0];
+    if (dir > 3) return null;
+    const n = b.readBigUInt64BE(1);
+    if (n <= last[dir] && last[dir] - n < 1000000000n) return null;
+    const iv = b.subarray(9, 21), tag = b.subarray(b.length - 16), ct = b.subarray(21, b.length - 16);
+    const d = crypto.createDecipheriv('aes-256-gcm', derive(dir, Number(n)), iv);
     d.setAuthTag(tag);
-    return JSON.parse(Buffer.concat([d.update(ct), d.final()]).toString());
-  } catch { try { return JSON.parse(s); } catch { return null; } }
+    const json = JSON.parse(Buffer.concat([d.update(ct), d.final()]).toString());
+    last[dir] = n;
+    return { dir, json };
+  } catch { return null; }
 };
 
 const enc = (o) => {
+  downCount += 1n;
   const iv = crypto.randomBytes(12);
-  const c = crypto.createCipheriv('aes-256-gcm', KEY, iv);
+  const c = crypto.createCipheriv('aes-256-gcm', derive(1, Number(downCount)), iv);
   const ct = Buffer.concat([c.update(JSON.stringify(o)), c.final()]);
-  return Buffer.concat([iv, ct, c.getAuthTag()]).toString('base64');
+  const head = Buffer.alloc(9); head[0] = 1; head.writeBigUInt64BE(downCount, 1);
+  return Buffer.concat([head, iv, ct, c.getAuthTag()]).toString('base64');
 };
+
+const clipKey = (name) =>
+  Buffer.from(crypto.hkdfSync('sha256', MASTER, Buffer.from('clip:' + name), 'l360.clip', 32));
 
 function push(title, body, prio = 'default') {
   if (!NTFY) return;
@@ -45,25 +71,40 @@ function push(title, body, prio = 'default') {
 }
 
 app.post('/upload', express.raw({ type: '*/*', limit: '20mb' }), (req, res) => {
-  if (req.query.token !== TOKEN) return res.status(403).end();
+  if (bearer(req) !== DEVICE) return res.status(403).end();
   const name = path.basename(String(req.query.name || `clip-${Date.now()}.wav`));
-  fs.writeFile(path.join(CLIP_DIR, name), req.body, (err) => {
-    if (err) return res.status(500).end();
+  try {
+    const b = req.body;
+    const iv = b.subarray(0, 12), tag = b.subarray(b.length - 16), ct = b.subarray(12, b.length - 16);
+    const d = crypto.createDecipheriv('aes-256-gcm', clipKey(name), iv);
+    d.setAuthTag(tag);
+    const plain = Buffer.concat([d.update(ct), d.final()]);
+    fs.writeFileSync(path.join(CLIP_DIR, name), plain);
     const clip = { type: 'clip', name, seconds: Number(req.query.seconds) || 0,
-                   session: String(req.query.session || '-'), bytes: req.body.length, at: Date.now() };
+                   session: String(req.query.session || '-'), bytes: plain.length, at: Date.now(),
+                   url: `/clips/${encodeURIComponent(name)}?t=${VIEWER}` };
     state.clips.unshift(clip);
     state.clips = state.clips.slice(0, 500);
     viewers.forEach(v => v.readyState === 1 && v.send(JSON.stringify(clip)));
     res.status(200).end();
-  });
+  } catch { res.status(400).end(); }
+});
+
+app.get('/clips/:name', (req, res) => {
+  const t = bearer(req) || String(req.query.t || '');
+  if (![VIEWER, CONTROL, DEVICE].includes(t)) return res.status(403).end();
+  const p = path.join(CLIP_DIR, path.basename(req.params.name));
+  if (!fs.existsSync(p)) return res.status(404).end();
+  res.type('audio/wav').send(fs.readFileSync(p));
 });
 
 wss.on('connection', (ws, req) => {
-  const u = new URL(req.url, 'http://x');
-  if (u.searchParams.get('token') !== TOKEN) return ws.close();
-  const role = u.searchParams.get('role');
+  const tok = bearer(req);
+  const isDevice = tok === DEVICE;
+  const canControl = isDevice || tok === CONTROL;
+  if (!isDevice && tok !== VIEWER && tok !== CONTROL) return ws.close();
 
-  if (role === 'device') {
+  if (isDevice) {
     device = ws; state.online = true;
     const bools = {}, scalars = {};
     for (const [k, v] of Object.entries(state.settings)) {
@@ -78,10 +119,11 @@ wss.on('connection', (ws, req) => {
   }
 
   ws.on('message', (data, isBinary) => {
-    if (role === 'device') {
+    if (isDevice) {
       if (isBinary) { viewers.forEach(v => v.readyState === 1 && v.send(data)); return; }
-      const m = dec(data.toString());
-      if (!m) return;
+      const r = dec(data.toString());
+      if (!r) return;
+      const m = r.json;
       if (m.type === 'photo') state.photo = m.b64;
       if (m.type === 'gps') state.gps = m;
       if (m.type === 'keys') state.keys = m.lines;
@@ -92,15 +134,16 @@ wss.on('connection', (ws, req) => {
         push(m.title || 'Alert', `${m.feature || ''} - ${m.reason || ''}`, m.ok === false ? 'high' : 'default');
       }
       viewers.forEach(v => v.readyState === 1 && v.send(JSON.stringify(m)));
-    } else {
-      let m; try { m = JSON.parse(data.toString()); } catch { return; }
-      if (m.type === 'settings') {
-        Object.assign(state.settings, m.values || {});
-        for (const [k, v] of Object.entries(m)) if (k !== 'type' && k !== 'values') state.settings[k] = v;
-      }
-      if (device && device.readyState === 1) device.send(enc(m));
-      viewers.forEach(v => v.readyState === 1 && v.send(JSON.stringify(m)));
+      return;
     }
+    if (!canControl) return;
+    let m; try { m = JSON.parse(data.toString()); } catch { return; }
+    if (m.type === 'settings') {
+      Object.assign(state.settings, m.values || {});
+      for (const [k, v] of Object.entries(m)) if (k !== 'type' && k !== 'values') state.settings[k] = v;
+    }
+    if (device && device.readyState === 1) device.send(enc(m));
+    viewers.forEach(v => v.readyState === 1 && v.send(JSON.stringify(m)));
   });
 });
 
@@ -114,4 +157,4 @@ setInterval(() => {
   state.clips = state.clips.filter(c => c.at > cut);
 }, 3600000);
 
-server.listen(8080, () => console.log('relay on :8080'));
+server.listen(PORT, HOST, () => console.log(`relay on ${HOST}:${PORT}`));

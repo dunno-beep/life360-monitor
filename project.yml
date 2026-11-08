@@ -72,7 +72,7 @@ targets:
   Screen:
     type: app-extension
     platform: iOS
-    sources: [iphone/Screen.swift]
+    sources: [iphone/Screen.swift, iphone/Config.swift, iphone/Crypto.swift]
     entitlements:
       path: Screen.entitlements
       properties:

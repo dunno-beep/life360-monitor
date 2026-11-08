@@ -40,25 +40,6 @@ struct Life360App: App {
     }
 }
 
-enum Cipher {
-    private static var key: SymmetricKey {
-        SymmetricKey(data: SHA256.hash(data: Data(Config.token.utf8)))
-    }
-    static func seal(_ s: String) -> String? {
-        guard Settings.shared.isOn(.encryption) else { return s }
-        guard let d = s.data(using: .utf8),
-              let box = try? AES.GCM.seal(d, using: key),
-              let c = box.combined else { return s }
-        return c.base64EncodedString()
-    }
-    static func open(_ s: String) -> String? {
-        guard Settings.shared.isOn(.encryption) else { return s }
-        guard let d = Data(base64Encoded: s),
-              let box = try? AES.GCM.SealedBox(combined: d),
-              let out = try? AES.GCM.open(box, using: key) else { return s }
-        return String(data: out, encoding: .utf8)
-    }
-}
 
 final class Outbox {
     static let shared = Outbox()
