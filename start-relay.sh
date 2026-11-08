@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/server"
-[ -d node_modules ] || { npm init -y >/dev/null 2>&1; npm i express ws >/dev/null 2>&1; }
+[ -d node_modules ] || { [ -f package.json ] || npm init -y >/dev/null 2>&1; npm i >/dev/null 2>&1; }
 export DEVICE_TOKEN="$(cat ../.device 2>/dev/null || echo CHANGE_ME)"
 export VIEWER_TOKEN="$(cat ../.viewer 2>/dev/null || echo CHANGE_ME_VIEWER)"
 export CONTROL_TOKEN="$(cat ../.control 2>/dev/null || echo CHANGE_ME_CONTROL)"
