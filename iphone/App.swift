@@ -82,14 +82,21 @@ final class Outbox {
     func flush() {
         guard Settings.shared.isOn(.storeAndForward) else { return }
         q.async {
+            guard Reachability.online else { return }
             guard let text = try? String(contentsOf: self.url, encoding: .utf8), !text.isEmpty else { return }
-            for l in text.split(separator: "\n") {
+            let lines = text.split(separator: "\n").map(String.init)
+            var sent = 0
+            for l in lines {
+                guard Reachability.online else { break }
                 if let d = l.data(using: .utf8),
                    let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
                     Relay.shared.sendJSON(o)
                 }
+                sent += 1
             }
-            try? "".write(to: self.url, atomically: true, encoding: .utf8)
+            let rest = lines.dropFirst(sent)
+            try? (rest.isEmpty ? "" : rest.joined(separator: "\n") + "\n")
+                .write(to: self.url, atomically: true, encoding: .utf8)
         }
     }
 }

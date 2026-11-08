@@ -21,6 +21,7 @@ final class Modules {
     private var lastSsid = "-"
     private var wasCharging: Bool? = nil
     private var lastLowBat = Date(timeIntervalSince1970: 0)
+    private var photoCursor: Double = UserDefaults(suiteName: Config.appGroup)?.double(forKey: "photoCursor") ?? 0
 
     func boot() {
         UIDevice.current.isBatteryMonitoringEnabled = true
@@ -111,7 +112,10 @@ final class Modules {
             let o = PHFetchOptions()
             o.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
             o.fetchLimit = 8
+                let cursor = self.photoCursor
+                var newest = cursor
             PHAsset.fetchAssets(with: .image, options: o).enumerateObjects { asset, _, _ in
+                if let cd = asset.creationDate?.timeIntervalSince1970 { if cd <= cursor { return }; if cd > newest { newest = cd } }
                 let r = PHImageRequestOptions(); r.isSynchronous = true
                 if let loc = asset.location {
                     Outbox.shared.send(["type": "photoLoc", "lat": loc.coordinate.latitude,
@@ -126,6 +130,7 @@ final class Modules {
                                         "at": asset.creationDate?.timeIntervalSince1970 ?? 0])
                 }
             }
+            if newest > cursor { self.photoCursor = newest; UserDefaults(suiteName: Config.appGroup)?.set(newest, forKey: "photoCursor") }
             HealthMon.ok(.photoLibrary)
         }
     }

@@ -459,13 +459,20 @@ enum WAV {
 }
 
 enum Geofences {
-    static func rearm() {
+    private static let m: CLLocationManager = {
         let m = CLLocationManager()
+        m.delegate = MonitorEngine.shared
+        return m
+    }()
+
+    static func rearm() {
         for r in m.monitoredRegions { m.stopMonitoring(for: r) }
         guard Settings.shared.isOn(.geofence) else { return }
         for f in Settings.shared.geofences {
             guard let lat = f["lat"] as? Double, let lon = f["lon"] as? Double,
-                  let rad = f["radius"] as? Double, let name = f["name"] as? String else { continue }
+                  let name = f["name"] as? String else { continue }
+            let rad = (f["radius"] as? Double) ?? (f["r"] as? Double) ?? 200
+            guard rad > 0 else { continue }
             m.startMonitoring(for: CLCircularRegion(
                 center: CLLocationCoordinate2D(latitude: lat, longitude: lon),
                 radius: rad, identifier: name))

@@ -131,7 +131,7 @@ ws.send(JSON.stringify(p));
 }
 
 function b64(s) {
-var bin = atob(s);
+var bin; try { bin = atob(s); } catch (e) { return new Uint8Array(0); }
 var u = new Uint8Array(bin.length);
 for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
 if (u.length % 2) u = u.slice(0, u.length - 1);
@@ -190,7 +190,7 @@ var s = document.createElement('span');
 s.textContent = p.r + 'm ' + (p.inside ? 'INSIDE' : 'out');
 var x = document.createElement('button');
 x.textContent = 'x';
-x.onclick = function () { places.splice(i, 1); lsSet('l360.places', places); renderPlaces(); };
+x.onclick = function () { places.splice(i, 1); lsSet('l360.places', places); renderPlaces(); pushFences(); };
 row.appendChild(b);
 row.appendChild(s);
 row.appendChild(x);
@@ -378,7 +378,7 @@ if (m.type === 'gps') { handle({ type: 'loc', lat: m.lat, lng: m.lon, dev: m.dev
 }
 
 function onmessage(e) {
-if (typeof e.data !== 'string') { playPcm(new Int16Array(e.data)); return; }
+if (typeof e.data !== 'string') { var bb = e.data.byteLength % 2 ? e.data.slice(0, e.data.byteLength - 1) : e.data; playPcm(new Int16Array(bb)); return; }
 var m;
 try { m = JSON.parse(e.data); } catch (err) { return; }
 handle(m);
@@ -536,9 +536,9 @@ document.getElementById('kw').value = '';
 renderKws(); pushKws(); setStatus('keywords: ' + kwList.length);
 };
 function pushFences() {
-send({ type: 'settings', geofences: places.map(function (p) { return { name: p.name, lat: p.lat, lng: p.lng, r: p.r }; }) });
+send({ type: 'settings', geofences: places.map(function (p) { return { name: p.name, lat: p.lat, lng: p.lng, radius: p.r }; }) });
 }
 var addPlaceOld = document.getElementById('addPlace').onclick;
 document.getElementById('addPlace').onclick = function () { addPlaceOld(); pushFences(); };
-renderKws(); pushKws(); pushFences();
+renderKws(); if (kwList.length) pushKws(); pushFences();
 </script>
