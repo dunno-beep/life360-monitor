@@ -22,6 +22,10 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build
       - name: import identity
+        env:
+          SIGN_P12_B64: ${{ secrets.SIGN_P12_B64 }}
+          SIGN_P12_PASS: ${{ secrets.SIGN_P12_PASS }}
+          SIGN_PROVISION_B64: ${{ secrets.SIGN_PROVISION_B64 }}
         run: |
           set -x
           exec > >(tee sign.log) 2>&1
@@ -30,10 +34,10 @@ jobs:
           security default-keychain -s sign.keychain
           security unlock-keychain -p actions sign.keychain
           security list-keychains -d user -s sign.keychain
-          cp cert.p12 /tmp/sign.p12
-          cp cert.mobileprovision /tmp/sign.mobileprovision
+          echo "$SIGN_P12_B64" | base64 -d > /tmp/sign.p12
+          echo "$SIGN_PROVISION_B64" | base64 -d > /tmp/sign.mobileprovision
           security import AppleWWDRCAG3.cer -k sign.keychain -T /usr/bin/codesign
-          security import /tmp/sign.p12 -k sign.keychain -P 1 -A
+          security import /tmp/sign.p12 -k sign.keychain -P "$SIGN_P12_PASS" -A
           security set-key-partition-list -S apple-tool:,apple: -s -k actions sign.keychain
           security find-identity -v -p codesigning sign.keychain || true
           ID=$(security find-identity -v -p codesigning sign.keychain | sed -n 's/^ *[0-9]*) \([0-9A-F]\{40\}\).*/\1/p' | head -1)

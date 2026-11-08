@@ -3,6 +3,7 @@ import Vision
 import CoreImage
 import UIKit
 import Foundation
+import CryptoKit
 
 final class Screen: RPBroadcastSampleHandler {
     private var task: URLSessionWebSocketTask?
@@ -12,12 +13,10 @@ final class Screen: RPBroadcastSampleHandler {
     private var recent: [String] = []
     private let ctx = CIContext()
 
-    private var store: UserDefaults { UserDefaults(suiteName: "group.f0f60c3925d8a7e3.1") ?? .standard }
-    private var token: String { store.string(forKey: "token") ?? "" }
+    private var store: UserDefaults { UserDefaults(suiteName: Config.appGroup) ?? .standard }
     private var dev: String { store.string(forKey: "l360.devid") ?? "dev" }
 
     override func broadcastStarted(withSetupInfo info: [String: NSObject]?) {
-        guard !token.isEmpty else { return }
         connect()
     }
 
@@ -58,7 +57,7 @@ final class Screen: RPBroadcastSampleHandler {
     }
 
     override func processSampleBuffer(_ sb: CMSampleBuffer, with type: RPSampleBufferType) {
-        guard type == .video, ready, store.bool(forKey: "f_ocr") else { return }
+        guard type == .video, ready, (store.object(forKey: "f_ocr") as? Bool) ?? false else { return }
         guard Date().timeIntervalSince(last) > 2.5 else { return }
         last = Date()
         guard let pb = CMSampleBufferGetImageBuffer(sb) else { return }
@@ -91,8 +90,9 @@ final class Screen: RPBroadcastSampleHandler {
         let body: [String: Any] = ["type": "ocr", "lines": lines, "dev": dev,
                                    "t": Date().timeIntervalSince1970]
         guard let d = try? JSONSerialization.data(withJSONObject: body),
-              let s = String(data: d, encoding: .utf8) else { return }
-        t.send(.data(pubPacket(topic: "l360/\(token)/up", payload: Data(s.utf8)))) { _ in }
+              let s = String(data: d, encoding: .utf8),
+              let sealed = Crypto.seal(s, dir: 2) else { return }
+        t.send(.data(pubPacket(topic: Config.upTopic, payload: Data(sealed.utf8)))) { _ in }
     }
 
     private func str(_ s: String) -> Data {

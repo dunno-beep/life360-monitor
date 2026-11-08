@@ -1,54 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
-HOST="${1:-}"; TOKEN="${2:-}"
-if [ -z "$HOST" ] || [ -z "$TOKEN" ]; then
-  echo "usage: bash configure.sh <tailscale-ip> <secret>"
-  echo "example: bash configure.sh 100.64.12.34 my-long-secret"
+HOST="${1:-}"; DEV="${2:-}"; VIEW="${3:-}"; CTL="${4:-}"
+if [ -z "$HOST" ] || [ -z "$DEV" ] || [ -z "$VIEW" ]; then
+  echo "usage: bash configure.sh <relay-host> <device-secret> <viewer-secret> [control-secret]"
   exit 1
 fi
-
-cat > iphone/Config.swift <<EOF
-import Foundation
-
-enum Config {
-    static let appGroup  = "group.com.you.life360"
-    static let relayHost = "$HOST"
-    static let relayPort = 8080
-    static let token     = "$TOKEN"
-}
-EOF
-
-cat > android/app/build.gradle.kts <<EOF
-plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-}
-
-android {
-    namespace = "com.you.life360monitor"
-    compileSdk = 34
-
-    defaultConfig {
-        applicationId = "com.you.life360monitor"
-        minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
-        buildConfigField("String", "RELAY", "\\"$HOST:8080\\"")
-        buildConfigField("String", "TOKEN", "\\"$TOKEN\\"")
-    }
-
-    buildFeatures { buildConfig = true }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions { jvmTarget = "17" }
-}
-EOF
-
-echo "$TOKEN" > .token
-echo "Configured."
-grep relayHost iphone/Config.swift
-grep -E "RELAY|TOKEN" android/app/build.gradle.kts
+CTL="${CTL:-$VIEW}"
+export HOST DEV VIEW CTL
+python3 - <<'PY'
+import os, re, pathlib
+H, D, V, C = (os.environ[k] for k in ("HOST", "DEV", "VIEW", "CTL"))
+sw = pathlib.Path("iphone/Config.swift"); s = sw.read_text()
+s = re.sub(r'static let token\s*=\s*"[^"]*"',   f'static let token   = "{D}"', s)
+s = re.sub(r'static let viewer\s*=\s*"[^"]*"',  f'static let viewer  = "{V}"', s)
+s = re.sub(r'static let control\s*=\s*"[^"]*"', f'static let control = "{C}"', s)
+s = re.sub(r'static let relayHost = "[^"]*"',   f'static let relayHost = "{H}"', s)
+sw.write_text(s)
+gd = pathlib.Path("android/app/build.gradle.kts"); g = gd.read_text()
+g = re.sub(r'buildConfigField\("String", "RELAY", "[^"]*"\)',
+           f'buildConfigField("String", "RELAY", "\\\\"{H}:8080\\\\"")', g)
+g = re.sub(r'buildConfigField\("String", "TOKEN", "[^"]*"\)',
+           f'buildConfigField("String", "TOKEN", "\\\\"{D}\\\\"")', g)
+m = re.search(r'versionCode = (\d+)', g)
+g = g.replace(m.group(0), f'versionCode = {int(m.group(1)) + 1}')
+gd.write_text(g)
+print("versionCode ->", re.search(r'versionCode = (\d+)', g).group(1))
+PY
+printf '%s\n' "$DEV" > .device
+printf '%s\n' "$VIEW" > .viewer
+printf '%s\n' "$CTL" > .control
+echo "$CTL" > .control
+echo "Configured for $HOST"

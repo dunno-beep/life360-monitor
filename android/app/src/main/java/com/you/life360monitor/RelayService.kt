@@ -64,7 +64,7 @@ class RelayService : Service() {
             val c = MqttAsyncClient("ssl://broker.emqx.io:8883", cid, MemoryPersistence())
             c.setCallback(object : MqttCallbackExtended {
                 override fun connectComplete(reconnect: Boolean, serverURI: String?) {
-                    val base = "l360/" + BuildConfig.TOKEN
+                    val base = Crypto.topic()
                     c.subscribe(arrayOf("$base/up", "$base/bin"), intArrayOf(0, 0))
                 }
                 override fun connectionLost(cause: Throwable?) {}
@@ -90,10 +90,10 @@ class RelayService : Service() {
     }
 
     fun send(plain: String) {
-        val sealed = Crypto.seal(plain) ?: return
+        val sealed = Crypto.seal(plain, 3) ?: return
         try {
             client?.publish(
-                "l360/" + BuildConfig.TOKEN + "/down",
+                Crypto.topic() + "/down",
                 MqttMessage(sealed.toByteArray()).apply { qos = 0 }
             )
         } catch (e: Exception) { }
