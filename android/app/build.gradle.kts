@@ -11,10 +11,10 @@ android {
         applicationId = "com.you.life360monitor"
         minSdk = 26
         targetSdk = 33
-        versionCode = 4
+        versionCode = 8
         versionName = "1.0"
-        buildConfigField("String", "RELAY", "\"100.64.x.y:8080\"")
-        buildConfigField("String", "TOKEN", "\"b0d715b56f0e74e625e8fd3225e2baf19f6a6eb9edf99d46\"")
+        buildConfigField("String", "RELAY", "\"100.94.117.23:8080\"")
+        buildConfigField("String", "TOKEN", "\"639a0cfb21944f825c517fc149c8edfcb5b0a70a1d4a5ebe\"")
     }
 
     buildFeatures { buildConfig = true }
