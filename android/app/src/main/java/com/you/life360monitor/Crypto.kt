@@ -24,13 +24,13 @@ object Crypto {
         mac.init(SecretKeySpec(master, "HmacSHA256"))
         val prk = mac.doFinal(salt)
         mac.init(SecretKeySpec(prk, "HmacSHA256"))
-        return mac.doFinal("l360.v2".toByteArray()).copyOf(32)
+        return mac.doFinal("l360.v2".toByteArray() + byteArrayOf(1)).copyOf(32)
     }
 
     @Synchronized
     fun seal(plain: String, dir: Byte = 0): String? {
         return try {
-            upCount += 1
+            upCount = maxOf(upCount + 1, System.currentTimeMillis())
             val iv = ByteArray(12).also { rng.nextBytes(it) }
             val c = Cipher.getInstance("AES/GCM/NoPadding")
             c.init(Cipher.ENCRYPT_MODE, SecretKeySpec(derive(dir, upCount), "AES"), GCMParameterSpec(128, iv))

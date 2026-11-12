@@ -16,7 +16,7 @@ enum Crypto {
 
     static func seal(_ s: String, dir: UInt8 = 0) -> String? {
         lock.lock(); defer { lock.unlock() }
-        let n = (last[dir] ?? 0) + 1
+        let n = max((last[dir] ?? 0) + 1, UInt64(Date().timeIntervalSince1970 * 1000))
         last[dir] = n
         guard let d = s.data(using: .utf8),
               let b = try? AES.GCM.seal(d, using: derive(dir, n)),

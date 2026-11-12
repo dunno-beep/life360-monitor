@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")"
+export GH_REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 REPO="${REPO:-life360-monitor}"
 command -v gh >/dev/null || { echo "pkg install gh"; exit 1; }
 gh auth status >/dev/null 2>&1 || gh auth login --hostname github.com --git-protocol https --web
