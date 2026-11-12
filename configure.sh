@@ -1,33 +1,56 @@
 #!/usr/bin/env bash
 set -euo pipefail
-HOST="${1:-}"; DEV="${2:-}"; VIEW="${3:-}"; CTL="${4:-}"
-if [ -z "$HOST" ] || [ -z "$DEV" ] || [ -z "$VIEW" ]; then
-  echo "usage: bash configure.sh <relay-host> <device-secret> <viewer-secret> [control-secret]"
-  exit 1
-fi
-CTL="${CTL:-$VIEW}"
-export HOST DEV VIEW CTL
-python3 - <<'PY'
-import os, re, pathlib
-H, D, V, C = (os.environ[k] for k in ("HOST", "DEV", "VIEW", "CTL"))
-sw = pathlib.Path("iphone/Config.swift"); s = sw.read_text()
-s = re.sub(r'static let token\s*=\s*"[^"]*"',   f'static let token   = "{D}"', s)
-s = re.sub(r'static let viewer\s*=\s*"[^"]*"',  f'static let viewer  = "{V}"', s)
-s = re.sub(r'static let control\s*=\s*"[^"]*"', f'static let control = "{C}"', s)
-s = re.sub(r'static let relayHost = "[^"]*"',   f'static let relayHost = "{H}"', s)
-sw.write_text(s)
-gd = pathlib.Path("android/app/build.gradle.kts"); g = gd.read_text()
-g = re.sub(r'buildConfigField\("String", "RELAY", "[^"]*"\)',
-           f'buildConfigField("String", "RELAY", "\\\\"{H}:8080\\\\"")', g)
-g = re.sub(r'buildConfigField\("String", "TOKEN", "[^"]*"\)',
-           f'buildConfigField("String", "TOKEN", "\\\\"{D}\\\\"")', g)
-m = re.search(r'versionCode = (\d+)', g)
-g = g.replace(m.group(0), f'versionCode = {int(m.group(1)) + 1}')
-gd.write_text(g)
-print("versionCode ->", re.search(r'versionCode = (\d+)', g).group(1))
-PY
-printf '%s\n' "$DEV" > .device
-printf '%s\n' "$VIEW" > .viewer
-printf '%s\n' "$CTL" > .control
-echo "$CTL" > .control
-echo "Configured for $HOST"
+HOST="${1:-}"; TOKEN="${2:-}"
+[ -n "$HOST" ] || { echo "usage: bash configure.sh <tailscale-ip> [secret]"; exit 1; }
+[ -n "$TOKEN" ] || TOKEN="$(openssl rand -hex 24 2>/dev/null || date +%s%N | sha256sum | cut -c1-48)"
+cat > iphone/Config.swift <<EOF
+import Foundation
+
+enum Config {
+    static let appGroup    = "group.f0f60c3925d8a7e3.1"
+    static let token       = "$TOKEN"
+    static let brokerHost  = "broker.emqx.io"
+    static let brokerPort  = 8084
+    static let brokerPath  = "/mqtt"
+    static let upTopic     = "l360/\(token)/up"
+    static let downTopic   = "l360/\(token)/down"
+    static let binTopic    = "l360/\(token)/bin"
+    static let relayHost   = "$HOST"
+    static let relayPort   = 8080
+}
+EOF
+cat > android/app/build.gradle.kts <<EOF
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+}
+
+android {
+    namespace = "com.you.life360monitor"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.you.life360monitor"
+        minSdk = 26
+        targetSdk = 33
+        versionCode = 4
+        versionName = "1.0"
+        buildConfigField("String", "RELAY", "\"$HOST:8080\"")
+        buildConfigField("String", "TOKEN", "\"$TOKEN\"")
+    }
+
+    buildFeatures { buildConfig = true }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = "17" }
+}
+
+dependencies {
+    implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
+}
+EOF
+echo "$TOKEN" > .token
+echo "Configured. Token: $TOKEN"

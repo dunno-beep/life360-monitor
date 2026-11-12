@@ -1,6 +1,7 @@
 # Life360 Monitor - full notes
 
-    iPhone (agent) --ws + AES-GCM over Tailscale--> Relay --> Android (monitor)
+    iPhone (agent) --wss + AES-GCM--> broker.emqx.io:8084 --> Android (monitor)
+iPhone (agent) --optional--> relay :8080 --> browser dashboard
 
 ## 1. Relay
 

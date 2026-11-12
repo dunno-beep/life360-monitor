@@ -179,7 +179,7 @@ final class Onboarding: NSObject, CLLocationManagerDelegate {
 struct Picker: UIViewRepresentable {
     func makeUIView(context: Context) -> RPSystemBroadcastPickerView {
         let v = RPSystemBroadcastPickerView(frame: .zero)
-        v.preferredExtension = "com.you.life360.screen"
+        v.preferredExtension = "app.cassava9339.ivory1607.screen"
         v.showsMicrophoneButton = false
         return v
     }

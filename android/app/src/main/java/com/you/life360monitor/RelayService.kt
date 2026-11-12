@@ -74,7 +74,7 @@ class RelayService : Service() {
                     if (topic != null && topic.endsWith("/bin")) {
                         pushBin(p)
                     } else {
-                        val plain = Crypto.open(String(p)) ?: return
+                        val plain = Crypto.open(String(p)) ?: String(p)
                         pushText(plain)
                     }
                 }

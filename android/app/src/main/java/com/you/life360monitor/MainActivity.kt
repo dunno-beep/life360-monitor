@@ -119,6 +119,7 @@ class MainActivity : Activity() {
     RelayService.webView = w
     h.post(drain)
     if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1)
+    try { startActivity(Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).setData(android.net.Uri.parse("package:" + packageName))) } catch (e: Exception) {}
   }
 
   override fun onBackPressed() {
