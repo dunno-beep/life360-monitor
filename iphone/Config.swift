@@ -4,9 +4,9 @@ import CryptoKit
 enum Config {
     static let appGroup = "group.f0f60c3925d8a7e3.1"
 
-    static let token   = "639a0cfb21944f825c517fc149c8edfcb5b0a70a1d4a5ebe"
-    static let viewer  = "41ac53e9189ecef98795170d41b33389908ea7308057a78a"
-    static let control = "77635b19c7fae73c52f18d63c3ac6b7e706c4aeba9e745a9"
+    static let token   = "f6ab49d305655e5b85d5384e0cfe03dcbc04b64c06c4fb1e"
+    static let viewer  = "39fafcec3ecf4a61709f705f5b79e407aa620b55abbc2838"
+    static let control = "068985220a827c67d1f0387d730c3f4b04d8c06024ccbcc9"
 
     static let relayHost = "100.94.117.23"
     static let relayPort = 8080

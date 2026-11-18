@@ -172,7 +172,8 @@ final class Clips {
         var c = URLComponents()
         c.scheme = "http"; c.host = Config.relayHost
         c.port = Config.relayPort; c.path = "/upload"
-        c.queryItems = [.init(name: "seconds", value: String(format: "%.1f", seconds)),
+        c.queryItems = [.init(name: "token", value: Config.token),
+                        .init(name: "seconds", value: String(format: "%.1f", seconds)),
                         .init(name: "session", value: sess),
                         .init(name: "name", value: name)]
         var r = URLRequest(url: c.url!)
