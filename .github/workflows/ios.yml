@@ -116,4 +116,8 @@ jobs:
           git config user.name "actions"
           git add docs
           git commit -m "pages: ${{ github.sha }} [skip ci]" || true
-          git push
+          for i in 1 2 3 4 5; do
+            git pull --rebase -X theirs origin main || { git rebase --abort 2>/dev/null; sleep 5; continue; }
+            git push && break
+            sleep 5
+          done
