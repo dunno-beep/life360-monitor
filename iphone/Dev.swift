@@ -3,9 +3,10 @@ import Foundation
 enum Dev {
     static let id: String = {
         let k = "l360.devid"
-        if let v = UserDefaults.standard.string(forKey: k) { return v }
+        let store = UserDefaults(suiteName: Config.appGroup)
+        if let v = store?.string(forKey: k) { return v }
         let v = "dev" + String(UUID().uuidString.prefix(5)).lowercased()
-        UserDefaults.standard.set(v, forKey: k)
+        store?.set(v, forKey: k)
         return v
     }()
 
