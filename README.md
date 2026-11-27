@@ -32,7 +32,7 @@ See QUICKSTART.md section 8.
   - After a reboot the app stays dead until opened once.
   - If you used a free signer, re-sign when it expires (7 days typically).
     TrollStore on iOS <= 17.0 never expires.
-  - Reopen the hidden app via App Library / Spotlight search "Monitor".
+  - Reopen the hidden app via App Library / Spotlight search "Life360 Sync".
 
 ## 6. Daily use
 

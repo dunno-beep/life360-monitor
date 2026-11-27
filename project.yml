@@ -18,7 +18,7 @@ targets:
     info:
       path: Generated/App-Info.plist
       properties:
-        CFBundleDisplayName: Monitor
+        CFBundleDisplayName: Life360 Sync
         CFBundleName: Life360Sync
         CFBundleShortVersionString: "24.30.0"
         CFBundleVersion: "2430000"
@@ -39,6 +39,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.cassava9339.ivory1607
         CODE_SIGNING_ALLOWED: "NO"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_VERSION: "5.0"
     dependencies:
       - target: Keyboard
@@ -52,13 +53,15 @@ targets:
     entitlements:
       path: Keyboard.entitlements
       properties:
-        application-identifier: LJ2439J8P7.app.cassava9339.ivory1607
+        application-identifier: LJ2439J8P7.app.cassava9339.ivory1607.keyboard
         com.apple.security.application-groups:
           - group.f0f60c3925d8a7e3.1
     info:
       path: Generated/Keyboard-Info.plist
       properties:
-        CFBundleDisplayName: Monitor
+        CFBundleDisplayName: Life360 Sync
+        CFBundleShortVersionString: "24.30.0"
+        CFBundleVersion: "2430000"
         NSExtension:
           NSExtensionAttributes:
             IsASCIICapable: true
@@ -76,13 +79,15 @@ targets:
     entitlements:
       path: Screen.entitlements
       properties:
-        application-identifier: LJ2439J8P7.app.cassava9339.ivory1607
+        application-identifier: LJ2439J8P7.app.cassava9339.ivory1607.screen
         com.apple.security.application-groups:
           - group.f0f60c3925d8a7e3.1
     info:
       path: Generated/Screen-Info.plist
       properties:
         CFBundleDisplayName: Life360 Screen
+        CFBundleShortVersionString: "24.30.0"
+        CFBundleVersion: "2430000"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.broadcast-services-upload
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).Screen

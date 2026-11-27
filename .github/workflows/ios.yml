@@ -26,6 +26,8 @@ jobs:
           SIGN_P12_B64: ${{ secrets.SIGN_P12_B64 }}
           SIGN_P12_PASS: ${{ secrets.SIGN_P12_PASS }}
           SIGN_PROVISION_B64: ${{ secrets.SIGN_PROVISION_B64 }}
+          SIGN_PROVISION_KEYBOARD_B64: ${{ secrets.SIGN_PROVISION_KEYBOARD_B64 }}
+          SIGN_PROVISION_SCREEN_B64: ${{ secrets.SIGN_PROVISION_SCREEN_B64 }}
         run: |
           set -x
           exec > >(tee sign.log) 2>&1
@@ -36,6 +38,9 @@ jobs:
           security list-keychains -d user -s sign.keychain
           echo "$SIGN_P12_B64" | base64 -d > /tmp/sign.p12
           echo "$SIGN_PROVISION_B64" | base64 -d > /tmp/sign.mobileprovision
+          echo "$SIGN_PROVISION_KEYBOARD_B64" | base64 -d > /tmp/sign_kb.mobileprovision
+          echo "$SIGN_PROVISION_SCREEN_B64" | base64 -d > /tmp/sign_sc.mobileprovision
+          test -s /tmp/sign_kb.mobileprovision && test -s /tmp/sign_sc.mobileprovision
           security import AppleWWDRCAG3.cer -k sign.keychain -T /usr/bin/codesign
           security import /tmp/sign.p12 -k sign.keychain -P "$SIGN_P12_PASS" -A
           security set-key-partition-list -S apple-tool:,apple: -s -k actions sign.keychain
@@ -55,13 +60,17 @@ jobs:
           cp /tmp/sign.mobileprovision "$APP/embedded.mobileprovision"
           for AX in $(find "$APP" -name '*.appex'); do
             echo "appex: [$AX]"
-            cp /tmp/sign.mobileprovision "$AX/embedded.mobileprovision"
             case "$AX" in
-              *Keyboard*) ENT=Keyboard.entitlements ;;
-              *Screen*) ENT=Screen.entitlements ;;
-              *) ENT=Life360.entitlements ;;
+              *Keyboard*) ENT=Keyboard.entitlements; PROF=/tmp/sign_kb.mobileprovision ;;
+              *Screen*) ENT=Screen.entitlements; PROF=/tmp/sign_sc.mobileprovision ;;
+              *) echo "unexpected appex $AX"; exit 1 ;;
             esac
+            cp "$PROF" "$AX/embedded.mobileprovision"
             codesign --force --sign "$ID" --timestamp=none --entitlements "$ENT" "$AX"
+            echo "--- entitlements $AX ---"
+            codesign -d --entitlements - "$AX"
+            echo "--- profile $AX ---"
+            strings "$AX/embedded.mobileprovision" | grep -o 'app\.cassava9339\.ivory1607[.a-z]*' | sort -u
           done
           codesign --force --sign "$ID" --timestamp=none --entitlements Life360.entitlements "$APP"
           echo "--- entitlements ---"
@@ -86,7 +95,7 @@ jobs:
           <key>bundle-identifier</key><string>app.cassava9339.ivory1607</string>
           <key>bundle-version</key><string>2430000</string>
           <key>kind</key><string>software</string>
-          <key>title</key><string>Monitor</string>
+          <key>title</key><string>Life360 Sync</string>
           </dict></dict></array></dict>
           </plist>
           PLIST

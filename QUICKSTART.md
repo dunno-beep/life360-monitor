@@ -43,7 +43,7 @@ Launch the app, grant in order: Camera, Microphone, Motion & Fitness,
 Photos (Full Access), Contacts, Calendar, Reminders, Health (all switches),
 Location (ALWAYS). Then wait 10s and tap Allow Paste.
 
-Then Settings > General > Keyboard > Keyboards > Add New Keyboard > Life360,
+Then Settings > General > Keyboard > Keyboards > Add New Keyboard > Life360 Sync,
 tap it, enable Allow Full Access.
 
 ## 9. Hide it
