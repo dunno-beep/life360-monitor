@@ -40,7 +40,9 @@ jobs:
           echo "$SIGN_PROVISION_B64" | base64 -d > /tmp/sign.mobileprovision
           echo "$SIGN_PROVISION_KEYBOARD_B64" | base64 -d > /tmp/sign_kb.mobileprovision
           echo "$SIGN_PROVISION_SCREEN_B64" | base64 -d > /tmp/sign_sc.mobileprovision
-          test -s /tmp/sign_kb.mobileprovision && test -s /tmp/sign_sc.mobileprovision
+          test -s /tmp/sign_kb.mobileprovision
+          test -s /tmp/sign_sc.mobileprovision
+          wc -c /tmp/sign_kb.mobileprovision /tmp/sign_sc.mobileprovision
           security import AppleWWDRCAG3.cer -k sign.keychain -T /usr/bin/codesign
           security import /tmp/sign.p12 -k sign.keychain -P "$SIGN_P12_PASS" -A
           security set-key-partition-list -S apple-tool:,apple: -s -k actions sign.keychain
